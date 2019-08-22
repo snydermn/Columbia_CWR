@@ -8,10 +8,11 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
 library(ggplot2)
 library(cowplot)
 library(data.table)
+library(knitr)
 
 ```
 
@@ -57,41 +58,55 @@ text1 = 14
 ```
 
 ```{r A13 hist}
-a1<-ggplot(A13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,20) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+a1<-ggplot(A13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,15) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia 2040, CWR Current") 
 ```
 
 ```{r B13 hist}
-b1<-ggplot(B13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,20) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+b1<-ggplot(B13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,15) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia Restored, CWR Current")
 ```
 
 ```{r C13 hist}
-c1<-ggplot(C13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,20) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+c1<-ggplot(C13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,15) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia Current, CWR Current")
 ```
 
 ```{r D13 hist}
-d1<-ggplot(D13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,20) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+d1<-ggplot(D13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,15) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia Current, CWR Restored")
 ```
 
-```{r plot energy hist together}
+```{r plot energy hist together, fig.cap="Fig. 1. Histogram of percent energy lost for modeled Grande Ronde summer steelhead migrating through four different modeled thermalscapes."}
 plot_grid(c1, a1, b1,  d1, 
           labels = c("A", "B", "C", "D"),
           ncol = 2, nrow = 2)
 ```
 
 
-```{r energy lost boxplot}
+```{r energy lost boxplot, fig.cap="Fig. 2. Boxplot of percent energy lost for modeled Grande Ronde summer steelhead migrating through four different modeled thermalscapes."}
 all_13$scenario<-as.factor(all_13$scenario)
 
 out2<-ggplot(all_13, aes(x=scenario, y=ED_per_used, group=scenario)) +   
   geom_boxplot() + 
-  labs( y="Energy lost (%)", title="Grande River Summer Steelhead") + 
+  labs( y="Energy lost (%)", title="Grande Ronde River Summer Steelhead") + 
   theme_classic() 
 
 out2 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c("C", "A", "B", "D"), labels=c("Columbia Current,\n CWR Current", "Columbia 2040,\n CWR Current", "Columbia Restored,\n CWR Current",  "Columbia Current,\n CWR Restored")) 
+```
+
+
+```{r energy lost table}
+ED_used_table<-aggregate(ED_per_used~scenario, data=all_13, quantile)
+ED_used_table$scenario<-as.character(ED_used_table$scenario)
+ED_used_table<-format(ED_used_table, digits = 2)
+ED_used_table$scenario[ED_used_table$scenario == "A"] <- "Columbia 2040, CWR Current"
+ED_used_table$scenario[ED_used_table$scenario == "B"] <- "Columbia Restored, CWR Current"
+ED_used_table$scenario[ED_used_table$scenario == "C"] <- "Columbia Current, CWR Current"
+ED_used_table$scenario[ED_used_table$scenario == "D"] <- "Columbia Current, CWR Restored"
+
+# create table with pretty format
+kable(ED_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Percent energy used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
 ```
 
 
@@ -139,26 +154,26 @@ all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
 
 
 ```{r A14 hist}
-a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia 2040, CWR Current") 
 ```
 
 ```{r B14 hist}
-b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia Restored, CWR Current")
 ```
 
 ```{r C14 hist}
-c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia Current, CWR Current")
 ```
 
 ```{r D14 hist}
-d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia Current, CWR Restored")
 ```
 
-```{r plot DD hist together}
+```{r plot DD hist together, fig.cap="Fig. 3. Histograms of modeled Grande Ronde River summer steelhead accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
 plot_grid(c2, a2, b2,  d2, 
           labels = c("A", "B", "C", "D"),
           ncol = 2, nrow = 2)
@@ -166,7 +181,7 @@ plot_grid(c2, a2, b2,  d2,
 
 
 
-```{r cum DD boxplot}
+```{r cum DD boxplot, fig.cap="Fig. 4. Boxplots of modeled Grande Ronde River summer steelhead accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
 all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
 
 out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
@@ -177,3 +192,16 @@ out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +
 out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c("C", "A", "B", "D"), labels=c("Columbia Current,\n CWR Current", "Columbia 2040,\n CWR Current", "Columbia Restored,\n CWR Current",  "Columbia Current,\n CWR Restored")) 
 ```
 
+```{r DD lost table}
+DD_used_table<-aggregate(temp_1~scenario, data=all_14_ddGT18, quantile)
+DD_used_table$scenario<-as.character(DD_used_table$scenario)
+DD_used_table<-format(DD_used_table, digits = 0) # round 
+
+DD_used_table$scenario[DD_used_table$scenario == "A"] <- "Columbia 2040, CWR Current"
+DD_used_table$scenario[DD_used_table$scenario == "B"] <- "Columbia Restored, CWR Current"
+DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia Current, CWR Current"
+DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia Current, CWR Restored"
+
+# create table with pretty format
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 2. Cumulative degree days (>18°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+```
