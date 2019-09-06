@@ -1,13 +1,13 @@
 ---
-title: "Grande Ronde summer steelhead cumulative DD"
+title: "Snake River fall chinook cumulative DD"
 author: "MNSnyder"
-date: "9/4/2019"
+date: "9/5/2019"
 output: html_document
 editor_options: 
   chunk_output_type: console
 ---
 
-Grande Ronde summer steelhead Columbia River temperature time series from 2017. 
+Snake River fall chinook Columbia River temperature time series from 2017. 
 4 scenarios included:
 
 * Columbia River 2017
@@ -15,7 +15,7 @@ Grande Ronde summer steelhead Columbia River temperature time series from 2017.
 * Columbia River 2017 plus 1
 * Columbia River 2017 plus 1, no CWRs
 
-Columbia 2017B assigns the John Day Pool temperature from the John Day forebay, which is the warmer part of the pool.
+Columbia 2017B assigns the John Day Pool temperature from the John Day forebay, which is the warmer section of the pool.
 
 
 ```{r setup, include=FALSE}
@@ -36,10 +36,10 @@ text1 = 8
 
 ```{r import hourly}
 # import in combined replicate DFs
-A14<-fread("D:/Results_4Populations/gr_Columbia2017B/combined/E14.csv", header=TRUE, sep=",")
-B14<-fread("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F14.csv", header=TRUE, sep=",")
-C14<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G14.csv", header=TRUE, sep=",")
-D14<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H14.csv", header=TRUE, sep=",")
+A14<-fread("D:/Results_4Populations/snake_Columbia2017B/combined/E5.csv", header=TRUE, sep=",")
+B14<-fread("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F5.csv", header=TRUE, sep=",")
+C14<-fread("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G5.csv", header=TRUE, sep=",")
+D14<-fread("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H5.csv", header=TRUE, sep=",")
 
 # rename columns
 names(A14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
@@ -80,37 +80,37 @@ all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
 
 
 ```{r A14 hist}
-a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia 2017, \nCWR Current") 
 ```
 
 ```{r B14 hist}
-b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia 2017, \nNo CWR")
 ```
 
 ```{r C14 hist}
-c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia 2040 (2017), \nCWR Current")
 ```
 
 ```{r D14 hist}
-d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia 2040 (2017), \nNo CWR")
 ```
 
-```{r plot DD hist together, fig.cap="Fig. 1. Histograms of modeled Grande Ronde River summer steelhead accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
+```{r plot DD hist together, fig.cap="Fig. 1. Histograms of modeled Snake River fall chinook accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
 plot_grid(a2, b2, c2, d2,
           labels = c("A", "B", "C", "D"),
           ncol = 2, nrow = 2)
 ```
 
-```{r cum DD boxplot, fig.cap="Fig. 2. Boxplots of modeled Grande Ronde River summer steelhead accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
+```{r cum DD boxplot, fig.cap="Fig. 2. Boxplots of modeled Snake River fall chinook accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
 all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
 
 out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
   geom_boxplot() + 
-  labs( y="Cumulative degree days (>18°C)", title="Grande Ronde River Summer Steelhead") + 
+  labs( y="Cumulative degree days (>18°C)", title="Snake River River fall chinook") + 
   theme_classic() 
 
 out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c( "A", "B","C","D"), labels=c(
@@ -131,7 +131,7 @@ DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia 2040 (2017), 
 DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2040 (2017), No CWR"
 
 # create table with pretty format
-kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>18°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>18°C) used across different HexSim thermalscapes summarized for Snake River River fall chinook.", digits=1)
 ```
 
 ###################################################################
@@ -167,37 +167,37 @@ all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
 
 
 ```{r A14 GT 20 hist}
-a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>20°C)", y="Percent", title="Columbia 2017, \nCWR Current") 
 ```
 
 ```{r B14 GT 20 hist}
-b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>20°C)", y="Percent", title="Columbia 2017, \nNo CWR")
 ```
 
 ```{r C14 GT 20 hist}
-c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>20°C)", y="Percent", title="Columbia 2040 (2017), \nCWR Current")
 ```
 
 ```{r D14 GT 20 hist}
-d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>20°C)", y="Percent", title="Columbia 2040 (2017), \nNo CWR")
 ```
 
-```{r plot DD hist together GT 20, fig.cap="Fig. 1. Histograms of modeled Grande Ronde River summer steelhead accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
+```{r plot DD hist together GT 20, fig.cap="Fig. 1. Histograms of modeled Snake River fall chinook accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
 plot_grid(a2, b2, c2, d2,
           labels = c("A", "B", "C", "D"),
           ncol = 2, nrow = 2)
 ```
 
-```{r cum DD boxplot GT 20, fig.cap="Fig. 2. Boxplots of modeled Grande Ronde River summer steelhead accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
+```{r cum DD boxplot GT 20, fig.cap="Fig. 2. Boxplots of modeled Snake River fall chinook accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
 all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
 
 out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
   geom_boxplot() + 
-  labs( y="Cumulative degree days (>20°C)", title="Grande Ronde River Summer Steelhead") + 
+  labs( y="Cumulative degree days (>20°C)", title="Snake River River fall chinook") + 
   theme_classic() 
 
 out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c( "A", "B","C","D"), labels=c(
@@ -218,7 +218,7 @@ DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia 2040 (2017), 
 DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2040 (2017), No CWR"
 
 # create table with pretty format
-kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>20°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>20°C) used across different HexSim thermalscapes summarized for Snake River River fall chinook.", digits=1)
 ```
 
 ###################################################################
@@ -254,37 +254,37 @@ all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
 
 
 ```{r A14 GT 21 hist}
-a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>21°C)", y="Percent", title="Columbia 2017, \nCWR Current") 
 ```
 
 ```{r B14 GT 21 hist}
-b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>21°C)", y="Percent", title="Columbia 2017, \nNo CWR")
 ```
 
 ```{r C14 GT 21 hist}
-c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>21°C)", y="Percent", title="Columbia 2040 (2017), \nCWR Current")
 ```
 
 ```{r D14 GT 21 hist}
-d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>21°C)", y="Percent", title="Columbia 2040 (2017), \nNo CWR")
 ```
 
-```{r plot DD hist together GT 21, fig.cap="Fig. 1. Histograms of modeled Grande Ronde River summer steelhead accumulated degrees day over 21°C from Bonneville to the Snake River confluence in the Columbia River."}
+```{r plot DD hist together GT 21, fig.cap="Fig. 1. Histograms of modeled Snake River fall chinook accumulated degrees day over 21°C from Bonneville to the Snake River confluence in the Columbia River."}
 plot_grid(a2, b2, c2, d2,
           labels = c("A", "B", "C", "D"),
           ncol = 2, nrow = 2)
 ```
 
-```{r cum DD boxplot GT 21, fig.cap="Fig. 2. Boxplots of modeled Grande Ronde River summer steelhead accumulated degrees day over 21°C from Bonneville to the Snake River confluence in the Columbia River."}
+```{r cum DD boxplot GT 21, fig.cap="Fig. 2. Boxplots of modeled Snake River fall chinook accumulated degrees day over 21°C from Bonneville to the Snake River confluence in the Columbia River."}
 all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
 
 out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
   geom_boxplot() + 
-  labs( y="Cumulative degree days (>21°C)", title="Grande Ronde River Summer Steelhead") + 
+  labs( y="Cumulative degree days (>21°C)", title="Snake River River fall chinook") + 
   theme_classic() 
 
 out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c( "A", "B","C","D"), labels=c(
@@ -305,7 +305,7 @@ DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia 2040 (2017), 
 DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2040 (2017), No CWR"
 
 # create table with pretty format
-kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>21°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>21°C) used across different HexSim thermalscapes summarized for Snake River River fall chinook.", digits=1)
 ```
 
 
@@ -342,37 +342,37 @@ all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
 
 
 ```{r A14 GT 22 hist}
-a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>22°C)", y="Percent", title="Columbia 2017, \nCWR Current") 
 ```
 
 ```{r B14 GT 22 hist}
-b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>22°C)", y="Percent", title="Columbia 2017, \nNo CWR")
 ```
 
 ```{r C14 GT 22 hist}
-c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>22°C)", y="Percent", title="Columbia 2040 (2017), \nCWR Current")
 ```
 
 ```{r D14 GT 22 hist}
-d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,600) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
         title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>22°C)", y="Percent", title="Columbia 2040 (2017), \nNo CWR")
 ```
 
-```{r plot DD hist together GT 22, fig.cap="Fig. 1. Histograms of modeled Grande Ronde River summer steelhead accumulated degrees day over 22°C from Bonneville to the Snake River confluence in the Columbia River."}
+```{r plot DD hist together GT 22, fig.cap="Fig. 1. Histograms of modeled Snake  River fall chinook accumulated degrees day over 22°C from Bonneville to the Snake River confluence in the Columbia River."}
 plot_grid(a2, b2, c2, d2,
           labels = c("A", "B", "C", "D"),
           ncol = 2, nrow = 2)
 ```
 
-```{r cum DD boxplot GT 22, fig.cap="Fig. 2. Boxplots of modeled Grande Ronde River summer steelhead accumulated degrees day over 22°C from Bonneville to the Snake River confluence in the Columbia River."}
+```{r cum DD boxplot GT 22, fig.cap="Fig. 2. Boxplots of modeled Snake River  fall chinook accumulated degrees day over 22°C from Bonneville to the Snake River confluence in the Columbia River."}
 all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
 
 out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
-  geom_boxplot() + ylim(0,800) +
-   labs( y="Cumulative degree days (>22°C)", title="Grande Ronde River Summer Steelhead") + 
+  geom_boxplot() + 
+  labs( y="Cumulative degree days (>22°C)", title="Snake River River fall chinook") + 
   theme_classic() 
 
 out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c( "A", "B","C","D"), labels=c(
@@ -393,5 +393,5 @@ DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia 2040 (2017), 
 DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2040 (2017), No CWR"
 
 # create table with pretty format
-kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>22°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>22°C) used across different HexSim thermalscapes summarized for Snake River River fall chinook.", digits=1)
 ```

@@ -1,7 +1,7 @@
 ---
 title: "Grande Ronde summer steelhead summarized fitness outcomes"
 author: "MNSnyder"
-date: "9/04/2019"
+date: "9/05/2019"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -9,13 +9,12 @@ editor_options:
 
 Grande Ronde summer steelhead Columbia River temperature time series from 2017. 
 4 scenarios included:
-
 * Columbia River 2017
 * Columbia River 2017, no CWRs
 * Columbia River 2017 plus 1
 * Columbia River 2017 plus 1, no CWRs
 
-Columbia 2017A assigns the John Day Pool temperature from the John Day forebay, which is the warmer part of the pool.
+Columbia 2017A assigns the John Day Pool temperature from the McNary tailrace, which is the cooler part of the pool.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
@@ -29,10 +28,10 @@ library(chron)
 
 ```{r import end condition}
 # import in combined replicate DFs
-A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
-B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
-C13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
-D13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+A13<-read.table("D:/Results_4Populations/gr_Columbia2017A/combined/E13.csv", header=TRUE, sep=",")
+B13<-read.table("D:/Results_4Populations/gr_Columbia2017A_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+C13<-read.table("D:/Results_4Populations/gr_Columbia2017Aplus1/combined/G13.csv", header=TRUE, sep=",")
+D13<-read.table("D:/Results_4Populations/gr_Columbia2017Aplus1_NoCWR/combined/H13.csv", header=TRUE, sep=",")
 
 # rename DF columns
 names(A13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
@@ -302,10 +301,10 @@ kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median"
 # import refuges population census table
 # only has refuge density for hours when a refuge is occupied
 # import in combined replicate DFs
-A9<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E9.csv", header=TRUE, sep=",")
-B9<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F9.csv", header=TRUE, sep=",")
-C9<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G9.csv", header=TRUE, sep=",")
-D9<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H9.csv", header=TRUE, sep=",")
+A9<-read.table("D:/Results_4Populations/gr_Columbia2017A/combined/E9.csv", header=TRUE, sep=",")
+B9<-read.table("D:/Results_4Populations/gr_Columbia2017A_NoCWR/combined/F9.csv", header=TRUE, sep=",")
+C9<-read.table("D:/Results_4Populations/gr_Columbia2017Aplus1/combined/G9.csv", header=TRUE, sep=",")
+D9<-read.table("D:/Results_4Populations/gr_Columbia2017Aplus1_NoCWR/combined/H9.csv", header=TRUE, sep=",")
 
 # rename columns
 colnames(A9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
@@ -358,10 +357,10 @@ kable(refuge_use_all, col.names=c("Scenario", "Total CWR Residence (h)"), captio
 
 ```{r summarize dying fish}
 # import in combined replicate DFs
-A12<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E12.csv", header=TRUE, sep=",")
-B12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F12.csv", header=TRUE, sep=",")
-C12<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G12.csv", header=TRUE, sep=",")
-D12<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H12.csv", header=TRUE, sep=",")
+A12<-read.table("D:/Results_4Populations/gr_Columbia2017A/combined/E12.csv", header=TRUE, sep=",")
+B12<-read.table("D:/Results_4Populations/gr_Columbia2017A_NoCWR/combined/F12.csv", header=TRUE, sep=",")
+C12<-read.table("D:/Results_4Populations/gr_Columbia2017Aplus1/combined/G12.csv", header=TRUE, sep=",")
+D12<-read.table("D:/Results_4Populations/gr_Columbia2017Aplus1_NoCWR/combined/H12.csv", header=TRUE, sep=",")
 
 
 # get number of individuals died from acute temperature stress
