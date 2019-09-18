@@ -489,7 +489,6 @@ DD_used_table$scenario[DD_used_table$scenario == "G"] <- "Columbia Current, No C
 kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 3. Cumulative degree days (>22°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
 ```
 
-
 ###################################################################
 ## Degree Days > 23°C
 
@@ -600,5 +599,4 @@ DD_used_table$scenario[DD_used_table$scenario == "G"] <- "Columbia Current, No C
 # create table with pretty format
 kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 3. Cumulative degree days (>23°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
 ```
-
 

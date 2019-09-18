@@ -13,7 +13,8 @@ library(ggplot2)
 library(cowplot)
 library(data.table)
 library(knitr)
-
+library(chron)
+library(tidyverse)
 ```
 
 
@@ -417,3 +418,48 @@ acute_all<-cbind(names_v, acute_v)
 kable(acute_all, col.names=c("Scenario", "Total mortality"), caption="Table 4. Model output for percent of individuals dying from acute temperature stress summarized for Snake River Fall Chinook.")
 ```
 
+```{r time in system histogram}
+all_13$Time_in_system_d<-all_13$Time_in_system / 24
+all_13_labels<-all_13
+# vector of scenario labels
+all_13_labels$scenario<-as.factor(all_13_labels$scenario)
+levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="A"] <-"Columbia 2040, CWR Current"
+levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="B"] <-"Columbia Restored, CWR Current"
+levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="C"] <-"Columbia Current, CWR Current"
+levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="D"] <-"Columbia Current, CWR Restored"
+levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="E"] <-"Columbia 2040, No CWRs"
+levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="F"] <-"Columbia Restored, No CWRs"
+levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="G"] <-"Columbia Current, No CWRs"
+
+#v_names<-c("Columbia 2040- CWR Current", "Columbia Restored- CWR Current","Columbia Current- CWR Current", "Columbia #Current- CWR Restored", "Columbia 2040- No CWRs", "Columbia Restored- No CWRs","Columbia Current- No CWRs" )
+p <- ggplot(data = all_13_labels, aes(x = Time_in_system_d)) + geom_histogram(binwidth = 10) 
+p + facet_wrap(~scenario) + labs(x="Passage time (d)", y="Count", title="Snake River Fall Chinook salmon") 
+```
+
+
+```{r terminus arrival histogram}
+# model starts on July 1 which is equivalent to julian day 182
+jday_start<-182
+# step is hour got to terminus
+# convert Step to julian day
+all_13_labels$jday<-floor(all_13_labels$Step / 24) + jday_start
+# convert julian day to date
+all_13_labels$date_ch<-chron(all_13_labels$jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+all_13_labels$date<- as.POSIXct(all_13_labels$date_ch, "GMT") 
+
+# histograms
+p <- ggplot(data = all_13_labels, aes(x = date)) + geom_histogram()
+p + facet_wrap(~scenario) + labs(x="Exit Day", y="Count", title="Snake River Fall Chinook salmon")
+```
+
+
+```{r terminus arrival histogram observed}
+psg_timing_gr_keefer <- read_csv("D:/HexSim_Models/CWR_Columbia/Calibration/MKeefer_data/psg_timing_gr_keefer.csv", 
+col_types = cols(bodate = col_date(format = "%m/%d/%Y"), 
+grdate = col_date(format = "%m/%d/%Y"), 
+ihdate = col_date(format = "%m/%d/%Y"), 
+mndate = col_date(format = "%m/%d/%Y")))
+names(psg_timing_gr_keefer)<-c("Year", "bodate", "BO_jul", "mndate", "ihdate", "ih_jul", "grdate", "bo_mn_d", "bo_ih_d", "ih_gr_d")
+d <- ggplot(data = psg_timing_gr_keefer, aes(x = bo_mn_d)) + geom_histogram() + xlim(0,260) + labs(x="Observed Passage time (days from Bonneville to McNary)")
+```

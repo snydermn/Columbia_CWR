@@ -1,0 +1,494 @@
+---
+title: "Grande Ronde summer steelhead cumulative DD"
+author: "MNSnyder"
+date: "9/10/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Grande Ronde summer steelhead DDs. 
+
+* Columbia 2017B plus 10%
+* Columbia 2017B plus 30%
+* Columbia 2017B plus 50%
+
+Three scenarios vary the probability of moving to cold water based on temperature. Increasing by 10,30,50% the values from 22-25 deg C.
+
+Columbia 2017B assigns the John Day Pool temperature from the McNary tailrace, which is the cooler part of the pool.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+```
+
+
+```{r plot formatting}
+width1 = 4.5
+height1 = 3.5
+text1 = 8
+```
+
+```{r}
+title1<-"Columbia 2017B"
+title2<-"Columbia 2017B, plus 10%"
+title3<-"Columbia 2017B, plus 30%"
+title4<-"Columbia 2017B, plus 50%"
+
+```
+
+
+```{r import hourly}
+# import in combined replicate DFs
+A14<-fread("D:/Results_4Populations/gr_Columbia2017B/combined/E14.csv", header=TRUE, sep=",")
+B14<-fread("D:/Results_4Populations/gr_Columbia2017B_plus10/combined/E14.csv", header=TRUE, sep=",")
+C14<-fread("D:/Results_4Populations/gr_Columbia2017B_plus30/combined/F14.csv", header=TRUE, sep=",")
+D14<-fread("D:/Results_4Populations/gr_Columbia2017B_plus50/combined/G14.csv", header=TRUE, sep=",")
+
+# rename columns
+names(A14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(B14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(C14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(D14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+
+```
+
+## DD > 18 °C
+```{r calc DD GT 18 for each scenario}
+# function to calculate cumulative degree days above a certain degree
+dum_dd<-function(threshold, DF){
+  DF_subset<-DF[which(DF$temp_1 >= threshold),]
+  dd_threshold<-aggregate(temp_1~ID, data=DF_subset, sum)
+  dd_threshold$temp_1<-dd_threshold$temp_1/24
+  return(dd_threshold)
+}
+
+# set threshold
+thres<-18
+# run for each scenario's hourly DF
+A14_ddGT18<-dum_dd(thres, A14)
+B14_ddGT18<-dum_dd(thres, B14)
+C14_ddGT18<-dum_dd(thres, C14)
+D14_ddGT18<-dum_dd(thres, D14)
+
+# add scenario column
+A14_ddGT18$scenario<-"A"
+B14_ddGT18$scenario<-"B"
+C14_ddGT18$scenario<-"C"
+D14_ddGT18$scenario<-"D"
+
+#combine
+all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
+
+```
+
+
+```{r A14 hist}
+a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia 2017B") 
+```
+
+```{r B14 hist}
+b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia 2017B, plus 10%")
+```
+
+```{r C14 hist}
+c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia 2017B, plus 30%")
+```
+
+```{r D14 hist}
+d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,35) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>18°C)", y="Percent", title="Columbia 2017B, plus 50%")
+```
+
+```{r plot DD hist together, fig.cap="Fig. 1. Histograms of modeled Grande Ronde River summer steelhead accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
+plot_grid(a2, b2, c2, d2,
+          labels = c("A", "B", "C", "D"),
+          ncol = 2, nrow = 2)
+```
+
+```{r cum DD boxplot, fig.cap="Fig. 2. Boxplots of modeled Grande Ronde River summer steelhead accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
+all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
+
+out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
+  geom_boxplot() + 
+  labs( y="Cumulative degree days (>18°C)", title="Grande Ronde River Summer Steelhead") + 
+  theme_classic() 
+
+out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c( "A", "B","C","D"), labels=c(
+  "Columbia 2017B",
+  "Columbia 2017B, plus 10%", 
+  "Columbia 2017B, plus 30%", 
+  "Columbia 2017B, plus 50%")) 
+```
+
+```{r DD lost table}
+DD_used_table<-aggregate(temp_1~scenario, data=all_14_ddGT18, quantile)
+DD_used_table$scenario<-as.character(DD_used_table$scenario)
+DD_used_table<-format(DD_used_table, digits = 0) # round 
+
+DD_used_table$scenario[DD_used_table$scenario == "A"] <- "Columbia 2017B"
+DD_used_table$scenario[DD_used_table$scenario == "B"] <- "Columbia 2017B, plus 10%"
+DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia 2017B, plus 30%"
+DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2017B, plus 50%"
+
+# create table with pretty format
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>18°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+```
+
+###################################################################
+## Degree Days > 20°C
+
+```{r calc DD GT 20 for each scenario}
+# function to calculate cumulative degree days above a certain degree
+dum_dd<-function(threshold, DF){
+  DF_subset<-DF[which(DF$temp_1 >= threshold),]
+  dd_threshold<-aggregate(temp_1~ID, data=DF_subset, sum)
+  dd_threshold$temp_1<-dd_threshold$temp_1/24
+  return(dd_threshold)
+}
+
+# set threshold
+thres<-20
+# run for each scenario's hourly DF
+A14_ddGT18<-dum_dd(thres, A14)
+B14_ddGT18<-dum_dd(thres, B14)
+C14_ddGT18<-dum_dd(thres, C14)
+D14_ddGT18<-dum_dd(thres, D14)
+
+# add scenario column
+A14_ddGT18$scenario<-"A"
+B14_ddGT18$scenario<-"B"
+C14_ddGT18$scenario<-"C"
+D14_ddGT18$scenario<-"D"
+
+#combine
+all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
+
+```
+
+
+```{r A14 GT 20 hist}
+a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>20°C)", y="Percent", title="Columbia 2017B") 
+```
+
+```{r B14 GT 20 hist}
+b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>20°C)", y="Percent", title="Columbia 2017B, plus 10%")
+```
+
+```{r C14 GT 20 hist}
+c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>20°C)", y="Percent", title="Columbia 2017B, plus 30%")
+```
+
+```{r D14 GT 20 hist}
+d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>20°C)", y="Percent", title="Columbia 2017B, plus 50%")
+```
+
+```{r plot DD hist together GT 20, fig.cap="Fig. 1. Histograms of modeled Grande Ronde River summer steelhead accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
+plot_grid(a2, b2, c2, d2,
+          labels = c("A", "B", "C", "D"),
+          ncol = 2, nrow = 2)
+```
+
+```{r cum DD boxplot GT 20, fig.cap="Fig. 2. Boxplots of modeled Grande Ronde River summer steelhead accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
+all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
+
+out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
+  geom_boxplot() + 
+  labs( y="Cumulative degree days (>20°C)", title="Grande Ronde River Summer Steelhead") + 
+  theme_classic() 
+
+out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c( "A", "B","C","D"), labels=c(
+  "Columbia 2017B",
+  "Columbia 2017B, plus 10%", 
+  "Columbia 2017B, plus 30%", 
+  "Columbia 2017B, plus 50%")) 
+```
+
+```{r DD lost table GT 20}
+DD_used_table<-aggregate(temp_1~scenario, data=all_14_ddGT18, quantile)
+DD_used_table$scenario<-as.character(DD_used_table$scenario)
+DD_used_table<-format(DD_used_table, digits = 0) # round 
+
+DD_used_table$scenario[DD_used_table$scenario == "A"] <- "Columbia 2017B"
+DD_used_table$scenario[DD_used_table$scenario == "B"] <- "Columbia 2017B, plus 10%"
+DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia 2017B, plus 30%"
+DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2017B, plus 50%"
+
+# create table with pretty format
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>20°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+```
+
+###################################################################
+## Degree Days > 21°C
+
+```{r calc DD GT 21 for each scenario}
+# function to calculate cumulative degree days above a certain degree
+dum_dd<-function(threshold, DF){
+  DF_subset<-DF[which(DF$temp_1 >= threshold),]
+  dd_threshold<-aggregate(temp_1~ID, data=DF_subset, sum)
+  dd_threshold$temp_1<-dd_threshold$temp_1/24
+  return(dd_threshold)
+}
+
+# set threshold
+thres<-21
+# run for each scenario's hourly DF
+A14_ddGT18<-dum_dd(thres, A14)
+B14_ddGT18<-dum_dd(thres, B14)
+C14_ddGT18<-dum_dd(thres, C14)
+D14_ddGT18<-dum_dd(thres, D14)
+
+# add scenario column
+A14_ddGT18$scenario<-"A"
+B14_ddGT18$scenario<-"B"
+C14_ddGT18$scenario<-"C"
+D14_ddGT18$scenario<-"D"
+
+#combine
+all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
+
+```
+
+
+```{r A14 GT 21 hist}
+a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>21°C)", y="Percent", title="Columbia 2017B") 
+```
+
+```{r B14 GT 21 hist}
+b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>21°C)", y="Percent", title="Columbia 2017B, plus 10%")
+```
+
+```{r C14 GT 21 hist}
+c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>21°C)", y="Percent", title="Columbia 2017B, plus 30%")
+```
+
+```{r D14 GT 21 hist}
+d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>21°C)", y="Percent", title="Columbia 2017B, plus 50%")
+```
+
+```{r plot DD hist together GT 21, fig.cap="Fig. 1. Histograms of modeled Grande Ronde River summer steelhead accumulated degrees day over 21°C from Bonneville to the Snake River confluence in the Columbia River."}
+plot_grid(a2, b2, c2, d2,
+          labels = c("A", "B", "C", "D"),
+          ncol = 2, nrow = 2)
+```
+
+```{r cum DD boxplot GT 21, fig.cap="Fig. 2. Boxplots of modeled Grande Ronde River summer steelhead accumulated degrees day over 21°C from Bonneville to the Snake River confluence in the Columbia River."}
+all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
+
+out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
+  geom_boxplot() + 
+  labs( y="Cumulative degree days (>21°C)", title="Grande Ronde River Summer Steelhead") + 
+  theme_classic() 
+
+out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c( "A", "B","C","D"), labels=c(
+  "Columbia 2017B",
+  "Columbia 2017B, plus 10%", 
+  "Columbia 2017B, plus 30%", 
+  "Columbia 2017B, plus 50%")) 
+```
+
+```{r DD lost table GT 21}
+DD_used_table<-aggregate(temp_1~scenario, data=all_14_ddGT18, quantile)
+DD_used_table$scenario<-as.character(DD_used_table$scenario)
+DD_used_table<-format(DD_used_table, digits = 0) # round 
+
+DD_used_table$scenario[DD_used_table$scenario == "A"] <- "Columbia 2017B"
+DD_used_table$scenario[DD_used_table$scenario == "B"] <- "Columbia 2017B, plus 10%"
+DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia 2017B, plus 30%"
+DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2017B, plus 50%"
+
+# create table with pretty format
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>21°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+```
+
+
+###################################################################
+## Degree Days > 22°C
+
+```{r calc DD GT 22 for each scenario}
+# function to calculate cumulative degree days above a certain degree
+dum_dd<-function(threshold, DF){
+  DF_subset<-DF[which(DF$temp_1 >= threshold),]
+  dd_threshold<-aggregate(temp_1~ID, data=DF_subset, sum)
+  dd_threshold$temp_1<-dd_threshold$temp_1/24
+  return(dd_threshold)
+}
+
+# set threshold
+thres<-22
+# run for each scenario's hourly DF
+A14_ddGT18<-dum_dd(thres, A14)
+B14_ddGT18<-dum_dd(thres, B14)
+C14_ddGT18<-dum_dd(thres, C14)
+D14_ddGT18<-dum_dd(thres, D14)
+
+# add scenario column
+A14_ddGT18$scenario<-"A"
+B14_ddGT18$scenario<-"B"
+C14_ddGT18$scenario<-"C"
+D14_ddGT18$scenario<-"D"
+
+#combine
+all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
+
+```
+
+
+
+```{r A14 GT 22 hist}
+a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>22°C)", y="Percent", title=title1) 
+```
+
+```{r B14 GT 22 hist}
+b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>22°C)", y="Percent", title=title2)
+```
+
+```{r C14 GT 22 hist}
+c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>22°C)", y="Percent", title=title3)
+```
+
+```{r D14 GT 22 hist}
+d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>22°C)", y="Percent", title=title4)
+```
+
+```{r plot DD hist together GT 22, fig.cap="Fig. 1. Histograms of modeled Grande Ronde River summer steelhead accumulated degrees day over 22°C from Bonneville to the Snake River confluence in the Columbia River."}
+plot_grid(a2, b2, c2, d2,
+          labels = c("A", "B", "C", "D"),
+          ncol = 2, nrow = 2)
+```
+
+```{r cum DD boxplot GT 22, fig.cap="Fig. 2. Boxplots of modeled Grande Ronde River summer steelhead accumulated degrees day over 22°C from Bonneville to the Snake River confluence in the Columbia River."}
+all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
+
+out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
+  geom_boxplot() + 
+  labs( y="Cumulative degree days (>22°C)", title="Grande Ronde River Summer Steelhead") + 
+  theme_classic() 
+
+out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c( "A", "B","C","D"), labels=c(
+  "Columbia 2017B",
+  "Columbia 2017B, plus 10%", 
+  "Columbia 2017B, plus 30%", 
+  "Columbia 2017B, plus 50%")) 
+```
+
+```{r DD lost table GT 22}
+DD_used_table<-aggregate(temp_1~scenario, data=all_14_ddGT18, quantile)
+DD_used_table$scenario<-as.character(DD_used_table$scenario)
+DD_used_table<-format(DD_used_table, digits = 0) # round 
+
+DD_used_table$scenario[DD_used_table$scenario == "A"] <- title1
+DD_used_table$scenario[DD_used_table$scenario == "B"] <- title2
+DD_used_table$scenario[DD_used_table$scenario == "C"] <- title3
+DD_used_table$scenario[DD_used_table$scenario == "D"] <- title4
+
+# create table with pretty format
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>22°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+```
+
+###################################################################
+## Degree Days > 23°C
+
+```{r calc DD GT 23 for each scenario}
+# function to calculate cumulative degree days above a certain degree
+dum_dd<-function(threshold, DF){
+  DF_subset<-DF[which(DF$temp_1 >= threshold),]
+  dd_threshold<-aggregate(temp_1~ID, data=DF_subset, sum)
+  dd_threshold$temp_1<-dd_threshold$temp_1/24
+  return(dd_threshold)
+}
+
+# set threshold
+thres<-23
+# run for each scenario's hourly DF
+A14_ddGT18<-dum_dd(thres, A14)
+B14_ddGT18<-dum_dd(thres, B14)
+C14_ddGT18<-dum_dd(thres, C14)
+D14_ddGT18<-dum_dd(thres, D14)
+
+# add scenario column
+A14_ddGT18$scenario<-"A"
+B14_ddGT18$scenario<-"B"
+C14_ddGT18$scenario<-"C"
+D14_ddGT18$scenario<-"D"
+
+#combine
+all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
+
+```
+
+
+
+```{r A14 GT 23 hist}
+a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>23°C)", y="Percent", title=title1) 
+```
+
+```{r B14 GT 23 hist}
+b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>23°C)", y="Percent", title=title2)
+```
+
+```{r C14 GT 23 hist}
+c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>23°C)", y="Percent", title=title3)
+```
+
+```{r D14 GT 23 hist}
+d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1400) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days (>23°C)", y="Percent", title=title4)
+```
+
+```{r plot DD hist together GT 23, fig.cap="Fig. 1. Histograms of modeled Grande Ronde River summer steelhead accumulated degrees day over 23°C from Bonneville to the Snake River confluence in the Columbia River."}
+plot_grid(a2, b2, c2, d2,
+          labels = c("A", "B", "C", "D"),
+          ncol = 2, nrow = 2)
+```
+
+```{r cum DD boxplot GT 23, fig.cap="Fig. 2. Boxplots of modeled Grande Ronde River summer steelhead accumulated degrees day over 23°C from Bonneville to the Snake River confluence in the Columbia River."}
+all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
+
+out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
+  geom_boxplot() + 
+  labs( y="Cumulative degree days (>23°C)", title="Grande Ronde River Summer Steelhead") + 
+  theme_classic() 
+
+out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c( "A", "B","C","D"), labels=c(
+  "Columbia 2017B",
+  "Columbia 2017B, plus 10%", 
+  "Columbia 2017B, plus 30%", 
+  "Columbia 2017B, plus 50%")) 
+```
+
+```{r DD lost table GT 23}
+DD_used_table<-aggregate(temp_1~scenario, data=all_14_ddGT18, quantile)
+DD_used_table$scenario<-as.character(DD_used_table$scenario)
+DD_used_table<-format(DD_used_table, digits = 0) # round 
+
+DD_used_table$scenario[DD_used_table$scenario == "A"] <- title1
+DD_used_table$scenario[DD_used_table$scenario == "B"] <- title2
+DD_used_table$scenario[DD_used_table$scenario == "C"] <- title3
+DD_used_table$scenario[DD_used_table$scenario == "D"] <- title4
+
+# create table with pretty format
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>23°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+```

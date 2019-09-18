@@ -1,0 +1,1509 @@
+---
+title: "Columbia CWR Calibration Figures"
+author: "M. Snyder"
+date: "Sept. 10, 2019"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+editor_options: 
+  chunk_output_type: console
+chunk_output_type: console
+fig_caption: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include = TRUE, warning=FALSE)
+library(reshape2)
+library(ggplot2)
+library(knitr)
+library(readr)
+library(lubridate)
+library(plyr)
+library(dplyr)
+library(xml2)
+library(GGally)
+library(gridExtra)
+```
+
+
+```{r set up directories, echo=FALSE}
+# to run script on different computers specify sys.info()[4] and
+# specify path to model results folder and
+# folder containing look up tables
+
+# Nathan's computer -> NOT SET UP
+if(Sys.info()[4]=="FILL IN HERE"){
+  fishdir <- "C:\\Dropbox\\DUST regression\\"
+  scenario<-"Migration_w_steelhead-[1]" # scenario name
+  inputdir<-path.expand("E:/HexSim_Models/Fish Model/analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("E:/HexSim_Models/R_code/") #calibration data directory)
+}
+
+# Marcia's epa computer -> WORKS
+if(Sys.info()[4]=="LZ2626XMSNYDE02"){
+  fishdir<-path.expand("D:/Results_4Populations/gr_Columbia2017B_plus50/gr_Columbia2017B_plus50-[2]/") # results path
+  scenario<-"gr_Columbia2017B_plus50" # scenario name
+  inputdir<-path.expand("D:/HexSim_Models/CWR_Columbia/Columbia [small]/Analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("D:/HexSim_Models/CWR_Columbia/R_code/") # calibration data directory
+}
+
+# Joe's epa computer -> NOT SET UP
+if(Sys.info()[4]=="FILL IN HERE"){
+  fishdir<-path.expand("E:/Results/TEST/TEST-[1]/")
+  scenario<-"Migration_Test" # scenario name
+  inputdir<-path.expand("E:/HexSim_Models/Fish Model/analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("E:/HexSim_Models/R_code/") #calibration data directory)
+  }
+```
+
+
+```{r parse scenario file to create input values}
+
+# read in scenario .xml
+#a<-read_xml('D:/HexSim_Models/CWR_Columbia/R_Code/test_scenario_for_parse.xml')
+
+a<-read_xml(paste(fishdir,scenario,".xml", sep=""))
+
+# get initial size
+initialSize_int<-xml_integer(xml_find_all(a, "//initialSize"))
+populationName<-xml_find_all(a, "//introductionEvent/populationName")
+populationName_attr<-xml_text(populationName)
+pop_init_nums<-cbind.data.frame(populationName_attr, initialSize_int)
+
+# max refuge density globalVariable
+globalvariable<-xml_find_all(a, ".//globalVariable")
+#xml_path(globalvariable)
+c<-xml_attr(globalvariable, "Value")
+d<-xml_attr(globalvariable, "Name")
+globalvars_df<-cbind.data.frame(c,d)
+
+```
+
+
+HexSim model run details:
+
+* Scenario name: `r scenario`
+* Fall chinook: `r pop_init_nums[5,2]` 
+* Summer steelhead:  `r pop_init_nums[6,2]`
+* Study area: Bonneville to confluence with the Snake River. 
+* Maximum density:  `r globalvars_df[12,1]`
+* Changed Movement Decision to incorporate spawning motivation, exit time distribution, and changed Refuge Hold Fraction for steelhead 
+
+
+```{r estimate length of study reach, include=FALSE}
+# Bonneville Dam is at river mile 146.1, rkm 235.1
+# Dalles 192 mi, 309 km from mouth
+
+start_rkm <-234.1
+end_rkm <- 521.8
+distance_km<-end_rkm - start_rkm 
+```
+
+
+```{r set model specifics, include=FALSE}
+# set model density conversion factor
+# used to convert model numbers in model to observed numbers
+density_conversion_factor<-278
+
+# used to convert from model hours to julian day
+# July 1 = 182 JD
+jday_start<-182 # model starts on julian day 182 (July 1)
+```
+
+
+```{r set plotting parameters}
+theme_set(theme_bw())
+```
+
+## Passage timing
+
+Passage timing output for calibration:
+
+* Mean passage time through hydropower system from tailrace to forebay 
+  + Goal: get within 20% of mean
+
+Emergent outputs which depend on entry timing, hydropower passage time, open reservoir swim speed, and CWR behavior:
+
+* median, range km/d from bonn to mcnary
+  + Goal: Get median speed within 20% of median
+
+
+```{r import hourly status, cache=TRUE, include=FALSE}
+hourly_chnk<-read.table(paste(fishdir,"Data Probe/Chinook-[Record Accumulator Values] Hourly Status Information [ chinook ]-accumulators.csv",sep=""), header = TRUE, sep = ",")
+
+hourly_sthd<-read.table(paste(fishdir,"Data Probe/Steelhead-[Record Accumulator Values] Hourly Status Information [ steelhead ]-accumulators.csv",sep=""), header = TRUE, sep = ",")
+
+# rename columns
+names(hourly_chnk)<-c("Run", "Step", "Population", "ID", "time_entry", "time_exit", "time_in_system", "time_arrived_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight",
+"energy", "selector", "refuge_avoidance", "cwr_hrs_episodic", "cwr_hrs_total", "thermal_patch", "hydropower_location")
+
+# rename columns
+names(hourly_sthd)<-c("Run", "Step", "Population", "ID", "time_entry", "time_exit", "time_in_system", "time_arrived_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight",
+"energy", "selector", "refuge_avoidance", "cwr_hrs_episodic", "cwr_hrs_total", "thermal_patch", "hydropower_location")
+
+# combine species
+hourly_chnk$species<-"Chinook"
+hourly_sthd$species<-"Steelhead"
+hourly_all<-rbind.data.frame(hourly_chnk, hourly_sthd)
+```
+
+```{r test motivation, eval=FALSE}
+hist(hourly_all$motivation)
+```
+
+
+
+## Hydropower passage timing
+
+```{r set up hydropower passage time table, include=TRUE, echo=FALSE}
+columns_for_keep<-c("Step", "ID", "hydropower_location", "species")
+# drop unrelated columns to make more manageable in size
+hourly_hydropower<-dplyr::select(hourly_all, one_of(columns_for_keep))
+# add categorical column descriptor for dam ID
+hourly_hydropower$dam_id<-ifelse(hourly_hydropower$hydropower_location == 1 | hourly_hydropower$hydropower_location == 2, "Bonneville", ifelse(hourly_hydropower$hydropower_location == 3 | hourly_hydropower$hydropower_location == 4, "Dalles", ifelse(hourly_hydropower$hydropower_location == 5 | hourly_hydropower$hydropower_location == 6, "John_Day", ifelse(hourly_hydropower$hydropower_location == 7 | hourly_hydropower$hydropower_location == 8, "McNary", "outside"))))
+# convert to factor
+hourly_hydropower$dam_id<-as.factor(hourly_hydropower$dam_id)
+# add categorical column descriptor for hydropower category
+hourly_hydropower$hydropower_feature<-ifelse(hourly_hydropower$hydropower_location == 1 | hourly_hydropower$hydropower_location == 3 | hourly_hydropower$hydropower_location == 5 | hourly_hydropower$hydropower_location == 7, "Tailrace", ifelse(hourly_hydropower$hydropower_location == 2 | hourly_hydropower$hydropower_location == 4 | hourly_hydropower$hydropower_location == 6 | hourly_hydropower$hydropower_location == 8, "Ladder", "Reservoir"))
+# convert to factor
+hourly_hydropower$hydropower_feature<-as.factor(hourly_hydropower$hydropower_feature)
+
+# drop outside hydropower hours
+hourly_hydropower<-hourly_hydropower[hourly_hydropower$dam_id!="outside",]
+
+# count total hours passage time through each dam (dam_id)
+dam_id_count<-hourly_hydropower %>% 
+  group_by(dam_id, ID) %>%
+  tally()
+
+# count passage time by dam and feature
+hydropower_feature_id_count<-hourly_hydropower %>% 
+  group_by(dam_id, ID, hydropower_feature) %>%
+  tally()
+
+# get quantiles of modeled total hydropower passage time
+model_hydro_pass_quant<-quantile(dam_id_count$n,  probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
+# import in observed hydropower passage time from Technical Report 2017-2 Migration of adult salmonids in the federal Columbia River hydrosystem: a summary of radiotelemetry studies, 1996-2014 summarized in "passage timing.xlsx"
+obs_hydro_pass_quant<-c(6, 10, 19, 29, 85)
+# combined modeled and observed total hydropower passage time in a dataframe
+hydro_pass_df<-cbind.data.frame(obs_hydro_pass_quant,model_hydro_pass_quant )
+# calculate percent difference
+hydro_pass_df$p_difference<-((abs(obs_hydro_pass_quant-model_hydro_pass_quant))/obs_hydro_pass_quant)*100
+# create output table
+kable(hydro_pass_df, digits=c(0,0,0),col.names=c("Observed Total Hydropower Passage Time (h)", "Modeled Total Hydropower Passage Time (h)", "% Difference"), caption ="Table 1. Total hours fish spent passing hydropower tailrace and fish ladder. Observed values are the mean of Bonneville, Dalles, John Day, and McNary passage times from Keefer et al. 17-2 Technical Report.")
+```
+
+
+```{r hydropower passage time boxplot comparison, include=TRUE, echo=FALSE, fig.cap="Fig. 1. Box plot of total passage time through hydropower structure, showing 5%, 25%, median, 75%, 95%, and outliears. Red text shows the observed data values."}
+
+# set up vector of observed data
+x_vec<-c(0,0,0)
+y_vec<-c(10,19,29)
+label_vec<-c("25% quantile", "median", "75% quantile")
+# boxplot total hydropower passage time
+out<-ggplot(dam_id_count, aes(y=n)) +   
+  geom_boxplot() + 
+  labs( y="Hours", x = " ") + 
+  theme_classic() + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+out + annotate("text",x=x_vec, y=y_vec, label=label_vec, colour="red")
+
+
+```
+
+## CWR Residence Time
+
+```{r CWR residence time data prep}
+# drop fish using CWR for <4 hours
+hourly_all_cwr_GT_4<-filter(hourly_all, cwr_hrs_total >4)
+# get record with maximum CWR total per fish
+cwr_hrs_total_max<-aggregate(cwr_hrs_total~ID + species, data=hourly_all_cwr_GT_4, max)
+# convert from hours to days
+cwr_hrs_total_max<-mutate(cwr_hrs_total_max, cwr_days_total =cwr_hrs_total / 24)
+# calculate mean, median, and max, CWR residence time total per species
+summary_cwr_residence_time<-cwr_hrs_total_max %>%
+  group_by(species) %>%
+  summarize(mean_cwr_total = mean(cwr_days_total),
+            median_cwr_total = median(cwr_days_total),
+            max_cwr_total = max(cwr_days_total))
+
+# observed values are from Keefer et al. 2017 EPA technical report (see CWR Residence Time.xlsx)
+obs_mean<-c(2.4, 19.5)
+obs_median<-c(1.2, 20.8)
+# combine model output with observed summary data
+cwr_residence_d_model_obs<-cbind.data.frame(summary_cwr_residence_time, obs_mean, obs_median)
+# calculate percent difference columns
+cwr_residence_d_model_obs$p_diff_mean<-((cwr_residence_d_model_obs$obs_mean - cwr_residence_d_model_obs$mean_cwr_total) / cwr_residence_d_model_obs$obs_mean) * 100
+
+cwr_residence_d_model_obs$p_diff_median<-((cwr_residence_d_model_obs$obs_median - cwr_residence_d_model_obs$median_cwr_total )/ cwr_residence_d_model_obs$obs_median) * 100
+```
+
+
+```{r CWR residence time plot sthd, include=TRUE, echo=FALSE, fig.cap="Fig. 2. Histogram of total time spent in cold water refuges for Steelhead."}
+sthd2<-ggplot(data=cwr_hrs_total_max ) + 
+  geom_histogram( data=subset(cwr_hrs_total_max, species %in% c("Steelhead")), aes(x =cwr_days_total, y=100 * (..count..)/sum(..count..)), binwidth = 2) 
+
+sthd2 + labs(title="Steelhead total hours", x="CWR Residence Time (Total Days)", y = "Percent")
+
+
+
+```
+
+```{r CWR residence time plot chnk, include=TRUE, echo=FALSE, fig.cap="Fig. 3. Histogram of total time spent in cold water refuges for Chinook."}
+chnk2<-ggplot(data=cwr_hrs_total_max ) + 
+  geom_histogram( data=subset(cwr_hrs_total_max, species %in% c("Chinook")), aes(x =cwr_days_total, y=100 * (..count..)/sum(..count..)), binwidth = 1) 
+
+chnk2 + labs(title="Chinook total hours", x="CWR Residence Time (Total Days)", y = "Percent")
+```
+
+
+```{r CWR residence time stats}
+# create table with pretty format
+kable(cwr_residence_d_model_obs, col.names=c( "Species", "Model Mean", "Model Median","Model Maximum", "Observed Mean", "Observed Median", "% Difference Mean", "% Difference Median"),row.names=TRUE, caption="Table 2. Total days residence in CWR per individual not distinguishing between refuges", digits=1)
+```
+
+
+## Bonneville to McNary passage rate
+
+```{r import end condition data probes}
+# import end condition data probes
+end_condition_chnk<-read.table(paste(fishdir,"Data Probe/Chinook-[Record Accumulator Values] Condition at Terminus [ chinook ]-accumulators.csv",sep=""), header = TRUE, sep = ",")
+
+end_condition_sthd<-read.table(paste(fishdir,"Data Probe/Steelhead-[Record Accumulator Values] Condition at Terminus [ steelhead ]-accumulators.csv",sep=""), header = TRUE, sep = ",")
+
+# rename columns
+names(end_condition_chnk)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+names(end_condition_sthd)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+# add species identifier column
+end_condition_chnk$species<-"Chinook"
+end_condition_sthd$species<-"Steelhead"
+
+# join tables
+end_condition<-rbind.data.frame(end_condition_chnk, end_condition_sthd)
+
+# convert to factor
+end_condition$species<-as.factor(end_condition$species)
+```
+
+
+```{r convert time to velocity, include=FALSE}
+end_condition$km_day<-distance_km / ( end_condition$Time_in_system / 24)
+```
+
+
+```{r mean velocity per species table, echo=FALSE}
+
+out_table<-ddply(end_condition, c("species"), summarise,
+      quantile_5 = quantile(km_day, 0.05),
+      quantile_25 = quantile(km_day, 0.25),
+      median = median(km_day), 
+      quantile_75 = quantile(km_day, 0.75),
+      quantile_95 = quantile(km_day, 0.95))
+
+# transpose
+out_table2<-t(out_table)
+
+# convert from matrix to DF
+out_table2<-as.data.frame(out_table2)
+# make column names from first row and drop first row
+colnames(out_table2)<-c("Chinook_modeled", "Steelhead_modeled")
+out_table2<-out_table2[-1,]
+
+# import observed passage time data from Keefer et al. 2004, details in "passage timing.xlsx"
+chnk_observed_passage_time<-c(8.5, 17, 23.8, 29.75, 34)
+sthd_observed_passage_time<-c(3.2, 5.4, 8.5, 19.8, 39.7)
+# combined modeled and observed total hydropower passage time in a dataframe
+pass_time_all_df<-cbind.data.frame(chnk_observed_passage_time, sthd_observed_passage_time,out_table2 )
+
+# convert from factor to numeric
+pass_time_all_df$Chinook_modeled<-as.numeric(as.character(pass_time_all_df$Chinook_modeled))
+pass_time_all_df$Steelhead_modeled<-as.numeric(as.character(pass_time_all_df$Steelhead_modeled))
+
+# calculate percent difference
+pass_time_all_df$p_difference_chnk<-((abs(pass_time_all_df$chnk_observed_passage_time-pass_time_all_df$Chinook_modeled))/pass_time_all_df$chnk_observed_passage_time)*100
+
+pass_time_all_df$p_difference_sthd<-((abs(pass_time_all_df$sthd_observed_passage_time-pass_time_all_df$Steelhead_modeled))/pass_time_all_df$sthd_observed_passage_time)*100
+
+# change row names of DF for table
+rownames(pass_time_all_df)<-c("5% quantile", "25% quantile", "Median", "75% quantile", "95% quantile")
+# create output table
+kable(pass_time_all_df, digits = c(0,0,0,0,0,0), col.names=c("Observed Passage Rate Chinook (km/d)", "Observed Passage Rate Steelhead (km/d)", "Modeled Passage Rate Chinook (km/d)", "Modeled Passage Rate Steelhead (km/d)", "% Difference Chinook", "% Difference Steelhead"), caption ="Table 3. Observed and modeled travel speed from Bonneville to McNary Dam. Observed values are from Keefer et al. 2004")
+
+```
+
+
+```{r passage rate boxplot comparison, include=TRUE, echo=FALSE, fig.cap="Fig. 4. Box plot of passage rate from Bonneville to McNary dam, showing 5%, 25%, median, 75%, 95%, and outliears. Red text shows the observed data values."}
+
+# set up vector of observed data for chinook (1:5) and steelhead (6:10)
+x_vec_sthd<-c(-0.2,-0.2,-0.2,-0.2,-0.2,0.2,0.2,0.2,0.2,0.2)
+y_vec_sthd<-c(8.5, 17, 23.8, 29.75, 34, 3.2, 5.4, 8.5, 19.8, 39.7)
+label_vec<-c("5% quantile", "25% quantile", "median", "75% quantile", "95% quantile","5% quantile", "25% quantile", "median", "75% quantile", "95% quantile")
+# boxplot total hydropower passage time
+out2<-ggplot(end_condition, aes(y=km_day, group=species, fill=species)) +   
+  geom_boxplot() + 
+  labs( y="Swim rate (km/d)") + 
+  theme_classic() + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+out2 + scale_fill_manual(values=c("#999999", "#E69F00")) + annotate("text",x=x_vec_sthd, y=y_vec_sthd, label=label_vec, colour="red")
+
+```
+
+
+
+```{r import tailrace, eval=FALSE}
+## Tailrace passage timing
+tailrace_chnk<-read.table(paste(fishdir,"Data Probe/Chinook-[Record Accumulator Values] Tailrace Residence Time [ chinook ]-accumulators.csv",sep=""), header = TRUE, sep = ",")
+
+tailrace_sthd<-read.table(paste(fishdir,"Data Probe/Steelhead-[Record Accumulator Values] Tailrace Residence Time [ steelhead ]-accumulators.csv",sep=""), header = TRUE, sep = ",")
+
+# rename columns
+# chnk
+names(tailrace_chnk)<-c("Run", "Step", "Population", "ID", "Tailrace_class", "Tailrace_counter")
+# sthd
+names(tailrace_sthd)<-c("Run", "Step", "Population", "ID", "Tailrace_class", "Tailrace_counter")
+
+```
+
+
+```{r tailrace residence time figures, eval=FALSE, echo=FALSE, fig.cap="Fig. X. Tailrace residence time."}
+hist(tailrace_sthd$Tailrace_counter, main="Histogram Steelhead", xlab="Hours in Tailrace")
+hist(tailrace_chnk$Tailrace_counter, main="Histogram Chinook", xlab="Hours in Tailrace")
+
+summary(tailrace_sthd$Tailrace_counter)
+summary(tailrace_chnk$Tailrace_counter)
+```
+
+
+## Run timing summary statistics and plot
+
+```{r movement behavior, eval=TRUE, echo=FALSE, fig.cap="Fig. 5. Location of all individuals in the model through time.  Individuals outside the study reach haven't passed Bonneville yet, individuals actively migrating are considered to be in the study reach, and individuals waiting at the terminus have reached the confluence with the Snake River."}
+census2<-read.table(paste(fishdir,scenario,".2.csv",sep=""), header = TRUE, sep = ",")
+census3<-read.table(paste(fishdir,scenario,".3.csv",sep=""), header = TRUE, sep = ",")
+# format chinook census
+for_keep<-c(2,7:9)
+census2<-census2[,for_keep]
+colnames(census2)<-c("Time.Step","Outside Study Reach", "Actively Migrating", "Waiting at Terminus")
+census2$species<-"Chinook"
+# format steelhead census
+for_keep<-c(2,7:9)
+census3<-census3[,for_keep]
+colnames(census3)<-c("Time.Step","Outside Study Reach", "Actively Migrating", "Waiting at Terminus")
+census3$species<-"Steelhead"
+# combine species
+movement_type<-rbind.data.frame(census2, census3)
+# wide to long
+movement_type_long<-melt(movement_type,variable.name="Movement",value.name="Frequency",id=c("Time.Step","species") )
+# plot
+ggplot(data = movement_type_long, aes(x = Time.Step, y = Frequency, colour = Movement)) + geom_line(aes(group = Movement)) + facet_wrap(~species) +
+  labs(x = "Time (hour)", y= "Number of Individuals")
+```
+
+## Movement summary statistics and plots
+
+```{r movement type, eval=TRUE, echo=FALSE, fig.cap="Fig. 6. Movement type by hour for chinook and steelhead"}
+# import census files
+census0<-read.table(paste(fishdir,scenario, ".0.csv",sep=""), header = TRUE, sep = ",")
+census1<-read.table(paste(fishdir,scenario, ".1.csv",sep=""), header = TRUE, sep = ",")
+
+# format chinook census
+for_keep<-c(2,7:11)
+census0<-census0[,for_keep]
+colnames(census0)<-c("Time.Step","Not Moving", "Random", "To Cold Water", "Upstream", "Downstream")
+census0$species<-"Chinook"
+# format steelhead census
+for_keep<-c(2,7:11)
+census1<-census1[,for_keep]
+colnames(census1)<-c("Time.Step","Not Moving", "Random", "To Cold Water", "Upstream", "Downstream")
+census1$species<-"Steelhead"
+# combine species
+movement<-rbind.data.frame(census0, census1)
+# wide to long
+movement_long<-melt(movement,variable.name="Movement",value.name="Frequency",id=c("Time.Step","species") )
+# plot
+ggplot(data = movement_long, aes(x = Time.Step, y = Frequency, colour = Movement)) + geom_line(aes(group = Movement)) + facet_wrap(~species) + labs(x = "Time (hour)", y= "Number of Individuals")
+
+```
+
+## Refuge use summary statistics and plots
+- Refuges include plume and tributary components. 
+
+
+```{r import refuges data, eval=TRUE, echo=FALSE}
+# import refuges population census table
+# only has refuge density for hours when a refuge is occupied
+refuges_data<-read.table(paste(fishdir,"Data Probe/Refuges-[Record Accumulator Values] Refuge-Specific Data-accumulators.csv",sep=""), header = TRUE, sep = ",")
+# rename columns
+colnames(refuges_data)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
+            "retain_chinook","retain_steelhead", "removed_chinook", "removed_steelhead")
+
+# create dataframe to link hexsim refuge id with name of refuge
+# HexSim Refuge ID in this file:
+# 14 - Eagle Creek
+# 15 - Rock Creek
+# 16 - Herman Creek
+# 17 - Wind River
+# 18 - Little White Salmon River
+# 19 - White Salmon River
+# 20 - Klickitat River
+# 21 - Deschutes River
+# 22 - Umatilla River
+# create sequence of refuge IDs
+refuge_IDseq<-seq(14,22,1)
+# create translator sequence because model adds 1 
+#refuge_IDseq2<-seq(1,7,1)
+
+# create vector of refuge names
+refuge_name<-c("Eagle Creek", "Rock Creek", "Herman Creek", "Wind River", "Little White Salmon River","White Salmon River", "Klickitat River", "Deschutes River", "Umatilla River")
+refuge_id<-cbind.data.frame(refuge_IDseq, refuge_name) # create dataframe to link refuge ID value with refuge Name
+# merge name with refuge data
+refuges_data2<-merge(refuges_data, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
+```
+
+
+```{r total refuge count, eval=TRUE, echo=FALSE}
+# calculate total individual hours in a refuge through time
+chinook_sum_refuge<-aggregate(retain_chinook~refuge_name, data=refuges_data2, sum)
+steelhead_sum_refuge<-aggregate(retain_steelhead~refuge_name, data=refuges_data2, sum)
+refuges_sum_df<-merge(chinook_sum_refuge, steelhead_sum_refuge, by.x="refuge_name", by.y="refuge_name")
+refuges_sum_df$total_individuals<-refuges_sum_df$retain_chinook + refuges_sum_df$retain_steelhead
+kable(refuges_sum_df, col.names=c("Refuge", "Chinook Hours", "Steelhead Hours", "Total"), caption ="Table 4. Sum of hours fish spent in each cold water refuge.")
+
+```
+
+
+```{r plot refuge density vs time, eval=TRUE, echo=FALSE, warning=FALSE, fig.cap="Fig. 7. Effective density per refuge through time for steelhead and chinook together."}
+# add column for total individuals retained
+refuges_data2$retain_all<-refuges_data2$retain_chinook + refuges_data2$retain_steelhead
+# refuge_name = NA when all individuals are outside cold water refuges during the time step
+t<-ggplot(data = subset(refuges_data2, !is.na(refuge_name)), aes(x = timestep, y = current_refuge_density*density_conversion_factor, colour = refuge_name)) + geom_line(aes(group = refuge_name)) +
+  scale_x_continuous(limits = c(0, 2750)) +
+  labs(x = "Time (hour)", y="Effective refuge density (ind/m3)")
+
+t 
+#+ scale_colour_discrete(name  ="Refuge",
+#            breaks=c("Eagle Creek", "Herman Creek", "Klickitat", "Little White Salmon", "Rock Creek", "White #Salmon", "Wind River", "Deschutes River", "Umatilla River"),
+#            labels=c("Eagle Creek", "Herman Creek", "Klickitat", "Little White Salmon", "Rock Creek", "White # Salmon", "Wind River", "Deschutes River", "Umatilla River")) 
+# 
+#ggplot(data = refuges_data2, aes(x = timestep, y = total_density*density_conversion_factor, colour = #refuge_name)) + geom_line(aes(group = refuge_name)) +
+#  scale_x_continuous(limits = c(1500, 2750)) +
+#  labs(x = "Time (hour)", y="Effective refuge density (ind/m3)")
+```
+
+
+```{r transform refuge data, eval=TRUE,  echo=FALSE}
+# create subset chinook tally
+col_vector<-c("timestep", "retain_chinook", "refuge_id", "refuge_name")
+refuge_chinook_tally<-select(refuges_data2, one_of(col_vector))
+refuge_chinook_tally$species<-"Chinook"
+colnames(refuge_chinook_tally)[2]<-"Retained"
+
+# create subset steelhead tally
+col_vector<-c("timestep", "retain_steelhead", "refuge_id", "refuge_name")
+refuge_steelhead_tally<-select(refuges_data2, one_of(col_vector))
+refuge_steelhead_tally$species<-"Steelhead"
+colnames(refuge_steelhead_tally)[2]<-"Retained"
+
+# create subset total count
+col_vector<-c("timestep", "retain_all", "refuge_id", "refuge_name")
+refuge_total_tally<-select(refuges_data2, one_of(col_vector))
+refuge_total_tally$species<-"Total"
+colnames(refuge_total_tally)[2]<-"Retained"
+
+# combine count subsets with column as factor
+refuge_tally<-rbind.data.frame(refuge_chinook_tally, refuge_steelhead_tally, refuge_total_tally)
+# replace count NAs with 0
+refuge_tally$Retained[which(is.na(refuge_tally$Retained))]<-0
+#summary(refuge_tally)
+
+```
+
+
+```{r plot count per refuge vs time, eval=TRUE, echo=FALSE, fig.cap="Fig. 8. Number of individuals per refuge through time."}
+ggplot(data = subset(refuge_tally, !is.na(refuge_name)), aes(x = timestep, y = Retained * density_conversion_factor, colour = refuge_name)) + geom_line(aes(group = refuge_name)) + facet_grid(species ~ .) +
+  labs(x = "Time (hour)", y="Individuals per refuge") 
+
+# ggplot(data = refuge_tally, aes(x = timestep, y = Density * density_conversion_factor, colour = refuge_name)) +  geom_line(aes(group = refuge_name)) + facet_grid(species ~ .) +
+#   labs(x = "Time (hour)", y="Individuals per refuge") 
+```
+
+## Cold water refuge use and water temperature
+
+```{r import temp table, eval=TRUE, include=FALSE}
+# import table of water temperatures
+water_temps<-read.table(paste(inputdir,"Columbia2017B_TribsCurrent.csv",sep=""), header = FALSE, sep = ",")
+# first row is bonneville teemperature, drop all rows except first
+bonn_temp<-water_temps[2,]
+bonn_temp2<-t(bonn_temp) # transpose to long
+colnames(bonn_temp2)<-"bonn_temp" # change column name
+# add column for time step
+timestep<-seq(from=1,to=dim(bonn_temp2)[1],by=1) # create sequence for number of hours of temp
+#timestep<-seq(from=1, to=2928, by=1)
+temp<-cbind.data.frame(bonn_temp2, timestep)
+```
+
+
+Cold water use from Bonneville to John Day and Bonneville temperature
+```{r set up data for temp CWR use from bonn to JD, echo=FALSE}
+# vector of thermal patch IDs for bonneville to john day
+vc <- c(2,3,29,30,31,32,33,34,35,36,37,38,39, 40,41,42,43,44)
+# subset hourly data to include patches within the bonneville or dalles pools
+hourly_all_subset1<-filter(hourly_all, thermal_patch %in% vc)
+# summarize by individual total hours in CWR
+hourly_all_subset2<-aggregate(cwr_hrs_total~ID, data=hourly_all_subset1, sum)
+# add binary column for if used CWR or no
+hourly_all_subset2$refuge_use<-0
+hourly_all_subset2$refuge_use[hourly_all_subset2$cwr_hrs_total >12]<-1  
+#hourly_all_subset2$refuge_use<-as.factor(hourly_all_subset2$refuge_use)
+# aggregate to get one entry per ID for entry_time
+ID_entry_time<-aggregate(time_entry~ID+species, data=hourly_all,min)
+# get time_entry to be used to get entry temp
+hourly_all_subset3<-merge(hourly_all_subset2, ID_entry_time,by.x="ID", by.y="ID")
+hourly_all_subset3$species<-as.factor(hourly_all_subset3$species)
+# merge with Bonneville temperature dataset
+hourly_all_subset4<-merge(hourly_all_subset3, temp, by.x="time_entry", by.y="timestep")
+# create categorical temp bins from continuous bonn temps
+hourly_all_subset4$cat_temp<-cut(hourly_all_subset4$bonn_temp, breaks=c(-Inf,15,16,17,18,19,20,21,22,23,Inf), labels=c("15","16","17","18","19","20","21","22","23","GT23"))
+
+# get percent refuge use per entry temperature bin
+p_refuge_bonn_temp2<-aggregate(refuge_use ~ cat_temp + species, data=hourly_all_subset4, mean)
+
+```
+
+
+```{r table CWR use by temperature, echo=FALSE}
+p_refuge_bonn_temp2_chnk<-filter(p_refuge_bonn_temp2, species == "Chinook")
+p_refuge_bonn_temp2_sthd<-filter(p_refuge_bonn_temp2, species == "Steelhead")
+# convert to percentage
+p_refuge_bonn_temp2_chnk$refuge_use<-p_refuge_bonn_temp2_chnk$refuge_use*100
+p_refuge_bonn_temp2_sthd$refuge_use<-p_refuge_bonn_temp2_sthd$refuge_use*100
+
+# combine in long form for plot
+data_mod<-rbind.data.frame(p_refuge_bonn_temp2_chnk, p_refuge_bonn_temp2_sthd)
+data_mod$group<-"Modeled"
+
+names(p_refuge_bonn_temp2_chnk)<-c("Temperature", "Species","p_refuge_chnk")
+names(p_refuge_bonn_temp2_sthd)<-c("Temperature", "Species","p_refuge_sthd")
+# create dataframe from modelled data
+out1<-merge(p_refuge_bonn_temp2_chnk, p_refuge_bonn_temp2_sthd, by.x="Temperature", by.y="Temperature")
+# import observed data from Keefer et al. 2009 and Goinea et al. 2006
+obs_temp<-c(17,18,19,20,21,22,23,24)
+obs_chnk<-c(0.5,2,4,7,13,25,60, 60)
+obs_sthd<-c(9,9,28,58,70,65,65, 65)
+# create DF from imported observed data
+out2<-cbind.data.frame(obs_temp, obs_chnk, obs_sthd)
+# merge observed and modeled data
+out3<-merge(out2, out1, by.x="obs_temp", by.y="Temperature")
+# drop unnecessary columns
+out4<-select(out3, -Species.x, -Species.y)
+# create percents from ratios
+#out4$p_refuge_chnk<-out4$p_refuge_chnk*100
+#out4$p_refuge_sthd<-out4$p_refuge_sthd*100
+
+# add obs to long DF for plot
+# chnk
+species_chnk_v<-c("Chinook", "Chinook", "Chinook", "Chinook", "Chinook", "Chinook", "Chinook", "Chinook")
+obs_chnk_df<-cbind.data.frame(obs_temp, species_chnk_v, obs_chnk)
+obs_chnk_df$group<-"Observed"
+# sthd
+species_sthd_v<-c("Steelhead", "Steelhead", "Steelhead", "Steelhead", "Steelhead", "Steelhead", "Steelhead", "Steelhead")
+obs_sthd_df<-cbind.data.frame(obs_temp, species_sthd_v, obs_sthd)
+obs_sthd_df$group<-"Observed"
+# convert names to match modelled names
+names(obs_sthd_df)<-c("cat_temp", "species", "refuge_use", "group")
+names(obs_chnk_df)<-c("cat_temp", "species", "refuge_use", "group")  
+# combine long DF observed data
+combined_long_obs<-rbind(obs_sthd_df, obs_chnk_df)
+# combine long DF observed and modelled data
+cwr_use_temp_mod_obs<-rbind(combined_long_obs, data_mod )
+
+# calculate percent difference
+out4$chnk_p_diff<-((out4$obs_chnk - out4$p_refuge_chnk) / out4$obs_chnk)*100
+out4$sthd_p_diff<-((out4$obs_sthd - out4$p_refuge_sthd) / out4$obs_sthd)*100
+
+kable(out4, col.names=c("Bonneville Temperature", "Observed Chinook % Use", "Observed Steelhead % Use", "Model Chinook % Use", "Model Steelhead % Use", "% Difference Chinook", "% Difference Steelhead"), caption ="Table 5. Sum of hours fish spent in each cold water refuge.")
+```
+
+
+
+```{r plot entry temp vs percent refuge use2, eval=FALSE, echo=FALSE, fig.cap="Fig. 9a Percentage of individuals occupying refuges versus the temperature at Bonneville on day of entry during passage between Bonneville and John Day. "}
+p <- ggplot(p_refuge_bonn_temp2, aes(x = cat_temp, y = refuge_use * 100, colour=species) ) +
+        geom_line(size=0.75, aes(group=species))  +
+   labs( y="Percent Refuge Use (BON to JD)", x = "Bonneville Temperature on Entry (?C)") + 
+  theme_classic() + 
+  theme(axis.text.y = element_text(size=14), 
+        axis.text.x=element_text(size=14),
+        axis.title.x=element_text(size=14), 
+        axis.title.y=element_text(size=14), 
+        legend.text = element_text(size=14), 
+        legend.title = element_text(size=14)) + 
+  scale_color_manual(values=c("#00FF00", "#6600CC"), name="Species")
+p
+```
+
+
+```{r plot entry temp vs percent refuge use2 with observed, eval=TRUE, echo=FALSE, fig.cap="Fig. 9b Percentage of individuals occupying refuges versus the temperature at Bonneville on day of entry during passage between Bonneville and John Day. Dotted lines are observed data, solid lines are modeled output. Purple lines represent steelhead and green chinook."}
+cwr_use_temp_mod_obs$id<-paste(cwr_use_temp_mod_obs$group, cwr_use_temp_mod_obs$species)
+
+p <- ggplot(cwr_use_temp_mod_obs, aes(x = cat_temp, y = refuge_use, group=id) ) +
+        geom_line(size=0.75, aes(linetype=id, color=id))  +
+   labs( y="Percent Refuge Use (BON to JD)", x = "Bonneville Temperature on Entry (?C)") + 
+  theme_classic() + 
+  theme(axis.text.y = element_text(size=14), 
+        axis.text.x=element_text(size=14),
+        axis.title.x=element_text(size=14), 
+        axis.title.y=element_text(size=14), 
+        legend.text = element_text(size=14), 
+        legend.title = element_text(size=14),
+        legend.position = "none") +
+  scale_linetype_manual(values=c("solid", "solid","longdash",  "longdash"))+
+     scale_color_manual(values=c("#00FF00", "#6600CC", "#00FF00", "#6600CC"), name="")  
+ 
+p
+```
+
+
+```{r set up data for temp CWR use , echo=FALSE}
+# vector of thermal patch IDs for bonneville to john day
+#vc <- c(2,3,29,30,31,32,33,34,35,36,37,38,39, 40,41,42,43,44)
+# subset hourly data to include patches within the bonneville or dalles pools
+#hourly_all_subset1<-filter(hourly_all, thermal_patch %in% vc)
+# summarize by individual total hours in CWR
+hourly_all_subset2<-aggregate(cwr_hrs_total~ID, data=hourly_all, sum)
+# add binary column for if used CWR or no
+hourly_all_subset2$refuge_use<-0
+hourly_all_subset2$refuge_use[hourly_all_subset2$cwr_hrs_total >12]<-1  
+#hourly_all_subset2$refuge_use<-as.factor(hourly_all_subset2$refuge_use)
+# aggregate to get one entry per ID for entry_time
+ID_entry_time<-aggregate(time_entry~ID+species, data=hourly_all,min)
+# get time_entry to be used to get entry temp
+hourly_all_subset3<-merge(hourly_all_subset2, ID_entry_time,by.x="ID", by.y="ID")
+hourly_all_subset3$species<-as.factor(hourly_all_subset3$species)
+# merge with Bonneville temperature dataset
+hourly_all_subset4<-merge(hourly_all_subset3, temp, by.x="time_entry", by.y="timestep")
+# create categorical temp bins from continuous bonn temps
+hourly_all_subset4$cat_temp<-cut(hourly_all_subset4$bonn_temp, breaks=c(-Inf,15,16,17,18,19,20,21,22,23,Inf), labels=c("15","16","17","18","19","20","21","22","23","GT23"))
+# add factor column to designate scenario
+hourly_all_subset4$scenario<-as.factor(scenario)
+# write out csv for replicate comparison purposes
+write.csv(hourly_all_subset4, paste(fishdir,scenario, "hourly_subset.csv", sep="") )
+# get percent refuge use per entry temperature bin
+p_refuge_bonn_temp2<-aggregate(refuge_use ~ cat_temp + species, data=hourly_all_subset4, mean)
+
+```
+
+
+```{r plot entry temp vs percent refuge use, eval=TRUE, echo=FALSE, fig.cap="Fig. 10 Percentage of individuals occupying refuges versus the temperature at Bonneville on day of entry during passage. "}
+p <- ggplot(p_refuge_bonn_temp2, aes(x = cat_temp, y = refuge_use * 100, colour=species) ) +
+        geom_line(size=0.75, aes(group=species))  +
+   labs( y="Percent Refuge Use (BON to JD)", x = "Bonneville Temperature on Entry (?C)") + 
+  theme_classic() + 
+  theme(axis.text.y = element_text(size=14), 
+        axis.text.x=element_text(size=14),
+        axis.title.x=element_text(size=14), 
+        axis.title.y=element_text(size=14), 
+        legend.text = element_text(size=14), 
+        legend.title = element_text(size=14)) + 
+  scale_color_manual(values=c("#00FF00", "#6600CC"), name="Species")
+p
+
+
+```
+
+
+```{r import in movement status census events, eval=FALSE}
+# Modelled passage timing over Mcnary dam compared to DART
+# not using for calibration 
+# import
+# mvmt_status_chnk<-read.table(paste(fishdir,scenario,".2.csv",sep=""), header = TRUE, sep = ",")
+# mvmt_status_sthd<-read.table(paste(fishdir,scenario,".3.csv",sep=""), header = TRUE, sep = ",")
+# # rename columns
+# names(mvmt_status_chnk)<-c("Run", "Time.Step", "Population.Size", "Group.Members", "Floaters", "Lambda", 
+#                            "estuary", "migrating", "terminus")
+# 
+# names(mvmt_status_sthd)<-c("Run", "Time.Step", "Population.Size", "Group.Members", "Floaters", "Lambda", 
+#                            "estuary", "migrating", "terminus")
+```
+
+## Energy use and CWR use
+```{r data prep for plot energy loss by entry date and CWR use}
+#names(end_condition)
+
+# calculate ED lost w/ gamete energy
+end_condition$gamete<-(((7598 + (0.527 * end_condition$Initial_weight)) * end_condition$Initial_weight) * 0.068) / end_condition$Initial_weight
+
+end_condition$initial_ED_avail<-end_condition$Initial_energy_density-end_condition$gamete
+
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+end_condition$energy_lost_gamete<-(end_condition$initial_ED_avail - end_condition$Fitness_energy) 
+
+# calculate energy use per day
+end_condition$energy_use_day<-end_condition$energy_lost_gamete / end_condition$Time_in_system * 24
+
+# create categorical column of refuge use 
+end_condition$refuge_use<-"No"
+end_condition$refuge_use[end_condition$Total_hours_cold_water > 12]<-'Yes'
+# use is.na
+end_condition$refuge_use<-as.factor(end_condition$refuge_use)
+
+# create column of percent energy lost
+end_condition$p_energy_lost<-100 * (end_condition$Initial_energy_density - end_condition$Fitness_energy) / end_condition$Initial_energy_density
+
+end_condition$time_chunk<-"Z" # create time_chunk column
+# assign time chunk values
+end_condition$time_chunk[end_condition$Time_entry > 0 & end_condition$Time_entry < 337]<-"A"
+end_condition$time_chunk[end_condition$Time_entry > 336 & end_condition$Time_entry < 1011]<-"B"
+end_condition$time_chunk[end_condition$Time_entry > 1010 & end_condition$Time_entry < 1348]<-"C"
+end_condition$time_chunk[end_condition$Time_entry > 1347 & end_condition$Time_entry < 1685]<-"D"
+end_condition$time_chunk[end_condition$Time_entry > 1684 & end_condition$Time_entry < 2022]<-"E"
+end_condition$time_chunk[end_condition$Time_entry > 2021 & end_condition$Time_entry < 2359]<-"F"
+end_condition$time_chunk[end_condition$Time_entry > 2358 & end_condition$Time_entry < 2696]<-"G"
+end_condition$time_chunk[end_condition$Time_entry > 2695 & end_condition$Time_entry < 3033]<-"H"
+end_condition$time_chunk[end_condition$Time_entry > 3032 & end_condition$Time_entry < 3370]<-"I"
+# convert to factor
+end_condition$time_chunk<-as.factor(end_condition$time_chunk)
+
+# subset df for chnk
+# subset data
+end_condition_chnk_for_plot <- end_condition %>% 
+  filter(species == "Chinook" )
+
+# subset df for sthd
+end_condition_sthd_for_plot <- end_condition %>% 
+  filter(species == "Steelhead" )
+
+```
+
+
+```{r plot energy loss by entry date and CWR use all fish, fig.cap="Fig. 11 Percentage of energy used by entry date versus the number of hours of cold water refuge use for all fish. "}
+
+energy_time<-ggplot(data = end_condition, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = time_chunk )) + geom_point() + labs(color="Entry Time", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + scale_color_manual(labels = c("Jul 1 - 14",  "Jul 15 - 29", "Jul 30 - Aug 12",  "Aug 13 - 27",  "Aug 28 - Sept 10", "Sept 11 - 24 ",  "Sept 25 - oct 7",  "Oct 8 - 21",  "Oct 22 - 31"), values=c("red","blue","brown","violet","green","orange","grey")) +
+  theme_bw()+
+  geom_smooth(method=lm, se = FALSE)
+energy_time
+
+```
+
+
+```{r chnk plot of percent energy lost by hours of CWR use and entry time, fig.cap="Fig. 12 Percentage of energy used by entry date versus the number of hours of cold water refuge use for Chinook salmon. "}
+energy_time_chnk<-ggplot(data = end_condition_chnk_for_plot, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = time_chunk )) + geom_point() + labs(color="Entry Time",title="Chinook salmon", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + scale_color_manual(labels = c("Jul 1 - 14",  "Jul 15 - 29", "Jul 30 - Aug 12",  "Aug 13 - 27",  "Aug 28 - Sept 10", "Sept 11 - 24 ",  "Sept 25 - oct 7",  "Oct 8 - 21",  "Oct 22 - 31"), values=c("red","blue","brown","violet","green","orange","grey")) +
+  theme_bw()+
+  geom_smooth(method = lm, se = FALSE)
+energy_time_chnk
+```
+
+
+```{r sthd plot of percent energy lost by hours of CWR use and entry time, fig.cap="Fig. 13 Percentage of energy used by entry date versus the number of hours of cold water refuge use for steelhead. "}
+energy_time_sthd<-ggplot(data = end_condition_sthd_for_plot, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = time_chunk )) + geom_point() + labs(color="Entry Time",title="Steelhead", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + scale_color_manual(labels = c("Jul 1 - 14",  "Jul 15 - 29", "Jul 30 - Aug 12",  "Aug 13 - 27",  "Aug 28 - Sept 10", "Sept 11 - 24 ",  "Sept 25 - oct 7",  "Oct 8 - 21",  "Oct 22 - 31"), values=c("red","blue","brown","violet","green","orange","grey")) +
+  theme_bw()+
+  geom_smooth(method = lm, se = FALSE)
+energy_time_sthd
+```
+
+
+```{r energy vs time period, echo=FALSE, fig.cap="Fig. 14. Energy used per individual based on passage date over Bonneville and whether a refuge was used (yes = > 0 hours). Points represent individuals.", echo=FALSE}
+labels<-c(A="Jul 1 - 14", B = "Jul 15 - 29", C="Jul 30 - Aug 12", D = "Aug 13 - 27", E = "Aug 28 - Sept 10", F = "Sept 11 - 24 ", G = "Sept 25 - oct 7", H = "Oct 8 - 21", I = "Oct 22 - 31")
+energy_time_facet<-ggplot(data = end_condition, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = species )) + 
+         geom_point() 
+y<-energy_time_facet + facet_grid(species~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Species", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + scale_color_manual(values=c("blue", "#E69F00"))
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+
+```{r boxplot energy used per day, echo=FALSE, fig.cap="Fig. 15. Average energy used per day passing through study reach from individuals who occupied cold water refuge versus individuals who passed through without holding in cold water."}
+# plot
+energy_per_day <- ggplot(end_condition, aes(x = refuge_use, y = energy_use_day, fill=species)) + geom_boxplot() + labs( y="Mean Energy Used Per Day (J/g day)", x = " Refuge Use") + scale_fill_brewer(palette = "Set1")
+energy_per_day
+```
+
+
+```{r data prep for energy use, CWR use, entry time, and Columbia temperature}
+
+# summarize all temperature experienced mean
+hourly_all_temp<-aggregate(temp_1~ID, data=hourly_all,mean)
+names(hourly_all_temp)<-c("ID", "mean_temp")
+
+## summarize mean ratio from ambient to experienced
+# add bonneville temperature to hourly
+hourly_all_plus_bonn<-merge(hourly_all, temp, by.x="Step", by.y="timestep")
+# create hourly ambient/experienced
+hourly_all_plus_bonn$ratio_bonn_to_temp1<-hourly_all_plus_bonn$bonn_temp / hourly_all_plus_bonn$temp_1
+# create mean ambient/experienced
+ratio_bonn_to_temp1_mean<-aggregate(ratio_bonn_to_temp1~ID, data=hourly_all_plus_bonn, mean)
+
+## summarize optimum minus experienced
+hourly_all$opt_exp<-17 - hourly_all$temp_1
+# mean optimum minus experienced
+opt_exp_mean<-aggregate(opt_exp~ID, data=hourly_all, mean)
+
+## summarize per individual mean Columbia temperature
+hourly_all_Columbia<-filter(hourly_all, thermal_patch < 6)
+mean_columbia_temp<-aggregate(temp_1~ID, data=hourly_all_Columbia, mean)
+max_columbia_temp<-aggregate(temp_1~ID, data=hourly_all_Columbia, max)
+# combine
+mean_max_columbia_temp<-merge(mean_columbia_temp, max_columbia_temp, by.x="ID", by.y="ID")
+names(mean_max_columbia_temp)<-c("ID", "mean_columbia_temp", "max_columbia_temp")
+
+## summarize per individual mean CWR temperature
+hourly_all_CWR<-filter(hourly_all, thermal_patch > 5)
+mean_CWR_temp<-aggregate(temp_1~ID, data=hourly_all_CWR, mean)
+names(mean_CWR_temp)<-c("ID", "mean_CWR_temp")
+
+## combine with end condition DF
+end_condition_plus_temp<-merge(end_condition, mean_max_columbia_temp, by.x="ID", by.y="ID")
+end_condition_plus_temp2<-merge(end_condition_plus_temp, hourly_all_temp, by.x="ID", by.y="ID")
+end_condition_plus_temp3<-merge(end_condition_plus_temp2, ratio_bonn_to_temp1_mean, by.x="ID", by.y="ID")
+end_condition_plus_temp4<-merge(end_condition_plus_temp3, opt_exp_mean, by.x="ID", by.y="ID")
+end_condition_plus_temps<-merge(end_condition_plus_temp4, mean_CWR_temp, by.x="ID", by.y="ID")
+
+# summarize per individual ratio of mean Columbia temperature / mean CWR temperature
+end_condition_plus_temps$temp_ratio<-end_condition_plus_temps$mean_columbia_temp / end_condition_plus_temps$mean_CWR_temp
+
+
+```
+
+
+```{r subset end_condition_plus_temps for plots}
+end_condition_plus_temps_chnk<-filter(end_condition_plus_temps, species =="Chinook")
+end_condition_plus_temps_sthd<-filter(end_condition_plus_temps, species =="Steelhead")
+labels<-c(A="Jul 1 - 14", B = "Jul 15 - 29", C="Jul 30 - Aug 12", D = "Aug 13 - 27", E = "Aug 28 - Sept 10", F = "Sept 11 - 24 ", G = "Sept 25 - Oct 7", H = "Oct 8 - 21", I = "Oct 22 - 31")
+```
+
+```{r define winner and loser threshold}
+chnk_winner_threshold<-20
+chnk_loser_threshold<-25
+sthd_winner_threshold<-25
+sthd_loser_threshold<-35
+```
+
+
+```{r export tables winners and losers}
+# write out summary per individual
+write.csv(end_condition_plus_temps, paste(fishdir,"end_condition_plus_temps.csv",sep=""))
+
+
+##chnk
+# filter all chnk individuals for winners who used CWRs
+chnk_winner<-filter(end_condition_plus_temps_chnk, p_energy_lost < chnk_winner_threshold & Total_hours_cold_water > 0 & Total_hours_cold_water < 500)
+# filter our winners from hourly data
+unique_chnk_ID_winner<-unique(chnk_winner$ID)
+filtered_hourly_winner_chnk<-filter(hourly_all, ID %in% unique_chnk_ID_winner)
+# write out winners
+write.csv(filtered_hourly_winner_chnk, paste(fishdir,"filtered_hourly_winner_chnk.csv",sep=""))
+
+# filter all individuals for losers who used CWRs
+chnk_loser<-filter(end_condition_plus_temps_chnk, p_energy_lost > chnk_loser_threshold & Total_hours_cold_water > 0 & Total_hours_cold_water < 500)
+# filter our winners from hourly data
+unique_chnk_ID_loser<-unique(chnk_loser$ID)
+filtered_hourly_loser_chnk<-filter(hourly_all, ID %in% unique_chnk_ID_loser)
+# write out winners
+write.csv(filtered_hourly_loser_chnk, paste(fishdir,"filtered_hourly_loser_chnk.csv",sep=""))
+
+##sthd
+# filter all chnk individuals for winners who used CWRs
+sthd_winner<-filter(end_condition_plus_temps_sthd, p_energy_lost < sthd_winner_threshold & Total_hours_cold_water > 0 & Total_hours_cold_water < 500)
+# filter our winners from hourly data
+unique_sthd_ID_winner<-unique(sthd_winner$ID)
+filtered_hourly_winner_sthd<-filter(hourly_all, ID %in% unique_sthd_ID_winner)
+# write out winners
+write.csv(filtered_hourly_winner_sthd, paste(fishdir,"filtered_hourly_winner_sthd.csv",sep=""))
+
+# filter all individuals for losers who used CWRs
+sthd_loser<-filter(end_condition_plus_temps_sthd, p_energy_lost > sthd_loser_threshold & Total_hours_cold_water > 0 & Total_hours_cold_water < 500)
+# filter our winners from hourly data
+unique_sthd_ID_loser<-unique(sthd_loser$ID)
+filtered_hourly_loser_sthd<-filter(hourly_all, ID %in% unique_sthd_ID_loser)
+# write out winners
+write.csv(filtered_hourly_loser_sthd, paste(fishdir,"filtered_hourly_loser_sthd.csv",sep=""))
+
+```
+
+```{r distribution of CWR Used}
+# Mainstem Below Bonneville Dam = 1
+# Mainstem Bonneville Pool = 2
+# Mainstem The Dalles Pool = 3
+# Mainstem John Day Pool = 4
+# Mainstem Above McNary Dam = 5
+# Skamokawa Creek = 6
+# Skamokawa Plume = 7
+# Mill Creek = 8
+# Abernethy Creek = 9
+# Abernethy Plume = 10
+# Germany Creek = 11
+# Cowlitz River = 12
+# Cowlitz Plume = 13
+# Kalama River = 14
+# Kalama Plume = 15
+# Lewis River = 16
+# Lewis Plume = 17
+# Sandy River = 18
+# Sandy Plume = 19
+# Washougal River = 20
+# Washougal Plume = 21
+# Bridal Veil Creek = 22
+# Bridal Veil Plume = 23
+# Wahkeena Creek = 24
+# Oneonta Creek = 25
+# Oneonta Plume = 26
+# Tanner Creek = 27
+# Tanner Plume = 28
+# Eagle Creek = 29
+# Eagle Plume = 30
+# Rock Creek = 31
+# Rock Plume = 32
+# Herman Creek = 33
+# Herman Plume = 34
+# Wind River = 35
+# Wind Plume = 36
+# Little White Salmon River = 37
+# Little White Salmon Plume = 38
+# White Salmon River = 39
+# White Salmon Plume = 40
+# Klickitat River = 41
+# Klickitat Plume = 42
+# Deschutes River = 43
+# Deschutes Plume = 44
+# Umatilla River = 45
+
+refuge_name2<-c("Below Bonneville Dam", "Bonneville Pool", "The Dalles Pool", "John Day Pool", "Above McNary", "Skamokawa Creek", "Skamokawa Plume", "Mill Creek", "Abernethy Creek", "Abernethy Plume", "Germany Creek", "Cowlitz River", "Cowlitz Plume", "Kalama River", "Kalama Plume", "Lewis River", "Lewis Plume", "Sandy River", "Sandy Plume", "Washougal River", "Washougal Plume", "Bridal Veil Creek", "Bridal Veil Plume", "Wahkeena Creek", "Oneonta Creek", "Oneonta Plume", "Tanner Creek", "Tanner Plume", "Eagle Creek", "Eagle Plume", "Rock Creek", "Rock Plume", "Herman Creek ", "Herman Plume", "Wind River", "Wind Plume", "Little White Salmon River", "Little White Salmon Plume", "White Salmon River", "White Salmon Plume", "Klickitat River", "Klickitat Plume", "Deschutes River", "Deschutes Plume", "Umatilla River")
+refuge_name2_seq<-seq(1,45,1)
+
+refuges_and_refuge_IDs<-cbind.data.frame(refuge_name2_seq, refuge_name2)
+
+# all hourly with thermal patch name combine and plot
+hourly_all_w_thermal_patch_name<-merge(hourly_all, refuges_and_refuge_IDs, by.x="thermal_patch", by.y="refuge_name2_seq")
+# filter out non-refuge hours
+hourly_all_w_thermal_patch_name_CWR<-filter(hourly_all_w_thermal_patch_name, thermal_patch > 5)
+# plot CWR use for trib and plume
+ggplot(hourly_all_w_thermal_patch_name_CWR, aes(x=species, fill=refuge_name2)) + 
+    geom_bar(position="dodge") +
+  labs(fill="CWR", y="CWR hours", title="Refuse Use")
+
+summary(hourly_all_w_thermal_patch_name_CWR$temp_1)
+mean(hourly_all_w_thermal_patch_name_CWR$temp_1)
+
+```
+
+```{r histogram freq of CWR temperature experienced, echo=FALSE, fig.cap="Fig. 16. Histogram of cold water temperature experienced."}
+hist(hourly_all_w_thermal_patch_name_CWR$temp_1, xlab="Cold water refuge temperature", main="Frequency of CWR temperature experienced")
+
+```
+
+
+```{r chnk merge winners and losers for plotting, eval=FALSE}
+# merge winners and losers 
+filtered_hourly_winner_chnk_2<-merge(filtered_hourly_winner_chnk, refuges_and_refuge_IDs, by.x="thermal_patch", by.y="refuge_name2_seq")
+
+filtered_hourly_loser_chnk_2<-merge(filtered_hourly_loser_chnk, refuges_and_refuge_IDs, by.x="thermal_patch", by.y="refuge_name2_seq")
+
+# add column for plot grouping
+filtered_hourly_winner_chnk_2$group<-"winners"
+filtered_hourly_loser_chnk_2$group<-"losers"
+# combine
+winners_and_losers_chnk<-rbind.data.frame(filtered_hourly_winner_chnk_2, filtered_hourly_loser_chnk_2)
+# subset to CWR patches
+winners_and_losers_chnk_cwr<-filter(winners_and_losers_chnk, thermal_patch >28 & species == "Chinook")
+```
+
+```{r sthd merge winners and losers for plotting, eval=FALSE}
+# merge winners and losers 
+filtered_hourly_winner_sthd_2<-merge(filtered_hourly_winner_sthd, refuges_and_refuge_IDs, by.x="thermal_patch", by.y="refuge_name2_seq")
+
+filtered_hourly_loser_sthd_2<-merge(filtered_hourly_loser_sthd, refuges_and_refuge_IDs, by.x="thermal_patch", by.y="refuge_name2_seq")
+
+# add column for plot grouping
+filtered_hourly_winner_sthd_2$group<-"winners"
+filtered_hourly_loser_sthd_2$group<-"losers"
+# combine
+winners_and_losers_sthd<-rbind.data.frame(filtered_hourly_winner_sthd_2, filtered_hourly_loser_sthd_2)
+# subset to CWR patches
+winners_and_losers_sthd_cwr<-filter(winners_and_losers_sthd, thermal_patch >28 & species == "Steelhead")
+```
+
+
+```{r chnk winners and losers stacked bar chart, eval=FALSE }
+# Creates stacked bar chart
+p <- ggplot(data = winners_and_losers_chnk_cwr, aes(x=group, fill=refuge_name2) ) + geom_bar() 
+p + labs(title="Chinook", fill="CWR")
+# creates stacked bar chart steelhead
+#winners_and_losers_chnk<-filter(winners_and_losers, thermal_patch >28 & species == "Chinook")
+
+```
+
+
+```{r sthd winners and losers stacked bar chart, eval=FALSE }
+# Creates stacked bar chart
+p <- ggplot(data = winners_and_losers_sthd, aes(x=group, fill=refuge_name2) ) + geom_bar() 
+p + labs(title="Steelhead", fill="CWR")
+# creates stacked bar chart steelhead
+#winners_and_losers_sthd<-filter(winners_and_losers, thermal_patch >28 & species == "Steelhead")
+
+```
+
+
+```{r chnk winners and losers grouped bar plot, eval=FALSE}
+# creates a grouped bar plot
+# Grouped
+ggplot(winners_and_losers_chnk, aes(fill=refuge_name2, x=group)) + 
+    geom_bar(position="dodge") + labs(title="Chinook")
+
+# make box or stack plot
+#hist(as.factor(filtered_hourly_LT20_2$thermal_patch))
+#hist(as.factor(filtered_hourly_GT25_2$thermal_patch))
+
+```
+
+
+```{r sthd winners and losers grouped bar plot, eval=FALSE}
+# creates a grouped bar plot
+# Grouped
+ggplot(winners_and_losers_sthd, aes(fill=refuge_name2, x=group)) + 
+    geom_bar(position="dodge") + labs(title="Steelhead")
+
+# make box or stack plot
+#hist(as.factor(filtered_hourly_LT20_2$thermal_patch))
+#hist(as.factor(filtered_hourly_GT25_2$thermal_patch))
+
+```
+
+## Energy use, CWR use, entry time, and Columbia temperature
+
+* p_energy_lost = % energy lost
+* mean_temp = mean (all temperatures experienced by individual)
+* ratio_bonn_to_temp1 = mean (ratio of bonneville pool temperature to experienced temperature)
+* opt_exp = mean (17 - experienced temperature)
+* mean_CWR_temp = mean (temperature experienced while in CWR)
+* initial_weight = initial weight (kg)
+* km_day = rate of passage from bonneville to mcnary dam (km/day)
+
+```{r correlation matrix}
+ggpairs(with(end_condition_plus_temps_chnk, data.frame(p_energy_lost, mean_temp, ratio_bonn_to_temp1, opt_exp, mean_CWR_temp, Initial_weight, km_day))) + theme_grey(base_size = 8)
+
+```
+
+
+```{r plot1 energy use chnk and sthd, CWR use, entry time, and Columbia temperature}
+labels<-c(A="Jul 1 - 14", B = "Jul 15 - 29", C="Jul 30 - Aug 12", D = "Aug 13 - 27", E = "Aug 28 - Sept 10", F = "Sept 11 - 24 ", G = "Sept 25 - Oct 7", H = "Oct 8 - 21", I = "Oct 22 - 31")
+energy_time_facet1<-ggplot(data = end_condition_plus_temps, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = mean_columbia_temp )) + 
+         geom_point() 
+y<-energy_time_facet1 + facet_grid(species~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Columbia River\n Temperature\n (mean deg C)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+y + theme(axis.text.y = element_text(angle = 60, hjust = 1))
+
+```
+
+
+```{r plot1 energy use chnk, CWR use, entry time, and Columbia temperature}
+# Chinook
+energy_time_facet1<-ggplot(data = end_condition_plus_temps_chnk, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = mean_columbia_temp )) + 
+         geom_point() 
+y<-energy_time_facet1 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Columbia River\n Temperature\n (mean ?C)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Chinook salmon") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# steelhead
+energy_time_facet2<-ggplot(data = end_condition_plus_temps_sthd, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = mean_columbia_temp )) + 
+         geom_point() 
+y<-energy_time_facet2 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Columbia River\n Temperature\n (mean ?C)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Steelhead") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+```
+
+```{r plot2 energy use, CWR use, entry time, and Columbia temperature}
+# Chinook
+energy_time_facet1<-ggplot(data = end_condition_plus_temps_chnk, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = max_columbia_temp )) + 
+         geom_point() 
+y<-energy_time_facet1 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Columbia River\n Temperature\n (max ?C)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Chinook salmon") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# steelhead
+energy_time_facet2<-ggplot(data = end_condition_plus_temps_sthd, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = max_columbia_temp )) + 
+         geom_point() 
+y<-energy_time_facet2 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Columbia River\n Temperature\n (max ?C)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Steelhead") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+```{r plot3 energy use, CWR use, entry time, and Columbia temperature}
+# Chinook
+energy_time_facet1<-ggplot(data = end_condition_plus_temps_chnk, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = mean_CWR_temp )) + 
+         geom_point() 
+y<-energy_time_facet1 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="CWR\n Temperature\n (mean ?C)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Chinook salmon") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# steelhead
+energy_time_facet2<-ggplot(data = end_condition_plus_temps_sthd, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = mean_CWR_temp )) + 
+         geom_point() 
+y<-energy_time_facet2 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="CWR\n Temperature\n (mean ?C)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Steelhead") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+```{r plot4 energy use, CWR use, entry time, and Columbia temperature}
+# Chinook
+energy_time_facet1<-ggplot(data = end_condition_plus_temps_chnk, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = temp_ratio )) + 
+         geom_point() 
+y<-energy_time_facet1 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Temperature\n Ratio\n Columbia River\n to CWR", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Chinook salmon") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# steelhead
+energy_time_facet2<-ggplot(data = end_condition_plus_temps_sthd, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = temp_ratio )) + 
+         geom_point() 
+y<-energy_time_facet2 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Temperature\n Ratio\n Columbia River\n to CWR", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Steelhead") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+```{r plot5 energy use, CWR use, entry time, and Columbia temperature}
+# Chinook
+energy_time_facet1<-ggplot(data = end_condition_plus_temps_chnk, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = km_day )) + 
+         geom_point() 
+y<-energy_time_facet1 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Passage rate\n (km/d)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Chinook salmon") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# steelhead
+energy_time_facet2<-ggplot(data = end_condition_plus_temps_sthd, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = km_day )) + 
+         geom_point() 
+y<-energy_time_facet2 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Passage rate\n (km/d)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Steelhead") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+```{r plot6 energy use, CWR use, entry time, and Columbia temperature}
+# Chinook
+energy_time_facet1<-ggplot(data = end_condition_plus_temps_chnk, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = Initial_energy_density )) + 
+         geom_point() 
+y<-energy_time_facet1 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Initial Energy\n  Density (J/g)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Chinook salmon") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# steelhead
+energy_time_facet2<-ggplot(data = end_condition_plus_temps_sthd, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = Initial_energy_density )) + 
+         geom_point() 
+y<-energy_time_facet2 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Initial Energy\n Density (J/g)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Steelhead") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+```{r plot7 energy use, CWR use, entry time, and Columbia temperature}
+# Chinook
+energy_time_facet1<-ggplot(data = end_condition_plus_temps_chnk, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = ratio_bonn_to_temp1 )) + 
+         geom_point() 
+y<-energy_time_facet1 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Mean Bonneville /\n Mean Temperature\nExperienced (?C)",  y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Chinook salmon") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# steelhead
+energy_time_facet2<-ggplot(data = end_condition_plus_temps_sthd, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = ratio_bonn_to_temp1 )) + 
+         geom_point() 
+y<-energy_time_facet2 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Mean Bonneville /\n Mean Temperature\nExperienced (?C)",  y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Steelhead") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+```{r plot8 energy use, CWR use, entry time, and Columbia temperature}
+# Chinook
+energy_time_facet1<-ggplot(data = end_condition_plus_temps_chnk, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = opt_exp )) + 
+         geom_point() 
+y<-energy_time_facet1 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Optimum Minus\nTemperature\nExperienced (?C)",  y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Chinook salmon") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# steelhead
+energy_time_facet2<-ggplot(data = end_condition_plus_temps_sthd, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = opt_exp )) + 
+         geom_point() 
+y<-energy_time_facet2 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Optimum Minus\nTemperature\nExperienced (?C)", y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Steelhead") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+```{r plot9 energy use, CWR use, entry time, and Columbia temperature}
+# Chinook
+energy_time_facet1<-ggplot(data = end_condition_plus_temps_chnk, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = ratio_bonn_to_temp1 )) + 
+         geom_point() 
+y<-energy_time_facet1 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Mean Bonneville /\n Mean Temperature\nExperienced (?C)",  y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Chinook salmon") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# steelhead
+energy_time_facet2<-ggplot(data = end_condition_plus_temps_sthd, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = ratio_bonn_to_temp1 )) + 
+         geom_point() 
+y<-energy_time_facet2 + facet_grid(.~time_chunk, labeller = labeller(time_chunk = labels)) +
+  labs(colour="Mean Bonneville /\n Mean Temperature\nExperienced (?C)",  y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Steelhead") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+```{r plot10 energy use, CWR use, entry time, and Columbia temperature}
+# Chinook
+energy_time_facet1<-ggplot(data = end_condition_plus_temps_chnk, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = ratio_bonn_to_temp1 )) + 
+         geom_point() 
+y<-energy_time_facet1 + labs(colour="Mean Bonneville /\n Mean Temperature\nExperienced (?C)",  y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Chinook salmon") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# steelhead
+energy_time_facet2<-ggplot(data = end_condition_plus_temps_sthd, aes(x = Total_hours_cold_water, y = p_energy_lost, colour = ratio_bonn_to_temp1 )) + 
+         geom_point() 
+y<-energy_time_facet2 + labs(colour="Mean Bonneville /\n Mean Temperature\nExperienced (?C)",  y="Energy Used (%)", x = "Total Cold Water Refuge Use (hours)") + ggtitle("Steelhead") +
+  scale_color_gradient(low="blue", high="red")
+y + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+```
+
+
+## Energy use by location
+
+```{r data prep energy use by location}
+# create unique ID for location based on thermal patch and hydropower status
+hourly_all$location_combo<-paste(hourly_all$thermal_patch, "_", hourly_all$hydropower_location, sep="")
+# create location class column to distinguish between reservoir, CWR, and hydropower
+hourly_all$location<-ifelse(hourly_all$thermal_patch > 5, "Refuge", ifelse(hourly_all$hydropower_location < 1, "Reservoir", "Hydropower"))
+# convert location to factor from character
+hourly_all$location<-as.factor(hourly_all$location)
+# get max for each location_combo by ID
+location_combo_max<-aggregate(energy_density~ID+location_combo, data=hourly_all, max)
+# get min for each location_combo by ID
+location_combo_min<-aggregate(energy_density~ID+location_combo, data=hourly_all, min)
+# get difference 
+location_combo_diff<-location_combo_max$energy_density - location_combo_min$energy_density
+# combine difference with ID and location_combo
+location_combo_diff_id<-cbind.data.frame(location_combo_min, location_combo_diff)
+# drop energy_density min column
+location_combo_diff_id<-select(location_combo_diff_id, -c("energy_density"))
+# create key linking location_combo to location description
+location_key<-aggregate(numeric(nrow(hourly_all)), hourly_all[c("location", "location_combo")], length)
+
+# add species and CWR use yes or no to DF
+hourly_key<-aggregate(cwr_hrs_total~ID + species, data=hourly_all, max)
+hourly_key$cwr_use<-as.factor(ifelse(hourly_key$cwr_hrs_total>12, "yes" , "no"))
+
+# merge key with energy difference per location_combo
+location_combo_all<-merge(location_combo_diff_id, location_key, by.x="location_combo", by.y="location_combo")
+
+# merge hourly_key with location data
+location_all<-merge(location_combo_all, hourly_key, by.x="ID", by.y="ID")
+
+# convert species to factor
+location_all$species<-as.factor(location_all$species)
+# summarize energy used per location
+location_for_plot<-aggregate(location_combo_diff~ cwr_use + location + species, data=location_all, sum)
+
+```
+
+
+```{r bar plot energy use by location}
+g<-ggplot(data=location_for_plot, aes(x=cwr_use, y=location_combo_diff, fill=location)) +
+geom_bar(stat="identity", position=position_dodge()) + facet_grid(.~species) +
+  scale_fill_brewer(palette="Spectral")
+g + labs(fill="Location",  y="Sum of Energy Used (J/g)", x = "Cold Water Refuge Use (> 12 h)")
+
+```
+
+## CWR Residence Time by Entry Time
+
+```{r data prep CWR Residence time by entry time}
+end_condition_cwr_use_yes<-filter(end_condition, refuge_use == "Yes")
+time_cold_water_per_time_chunk<-aggregate(Total_hours_cold_water~time_chunk+species,data=end_condition_cwr_use_yes, mean)
+```
+
+
+```{r plot CWR Residence time by entry time}
+hist(end_condition_cwr_use_yes$Time_exit)
+p<-ggplot(data=time_cold_water_per_time_chunk, aes(x=time_chunk, y=Total_hours_cold_water/24, colour=species)) + 
+  geom_point(size=5) 
+
+p + theme(axis.text.x = element_text(size=12, angle=90)) + scale_x_discrete(labels=c(labels)) + labs( x="Bonneville Entry Date", y="Total Cold Water Refuge Residence (d)") + scale_color_manual(values=c("blue", "#E69F00"))
+```
+
+
+## Passage time by Entry Time
+
+```{r data prep Passage time by entry time}
+passage_time_per_time_chunk<-aggregate(Time_in_system~time_chunk+species,data=end_condition_cwr_use_yes, mean)
+```
+
+
+```{r plot CWR Passage time by entry time}
+p<-ggplot(data=passage_time_per_time_chunk, aes(x=time_chunk, y=Time_in_system/24, colour=species)) + 
+  geom_point(size=5) 
+
+p + theme(axis.text.x = element_text(size=12, angle=90)) + scale_x_discrete(labels=c(labels)) + labs( x="Bonneville Entry Date", y="Total Passage Time (d)") + scale_color_manual(values=c("blue", "#E69F00"))
+```
+
+## CWR Residence Time by Date
+
+```{r CWR residence time by date prep}
+post_refuge_chnk<-read.table(paste(fishdir,"Data Probe/Chinook-[Record Accumulator Values] Post-Visit Refuge Data [ chinook ]-accumulators.csv",sep=""), header = TRUE, sep = ",")
+
+post_refuge_sthd<-read.table(paste(fishdir,"Data Probe/Steelhead-[Record Accumulator Values] Post-Visit Refuge Data [ steelhead ]-accumulators.csv",sep=""), header = TRUE, sep = ",")
+```
+
+
+```{r data prep energy use by location for winners, eval=FALSE}
+# add winner and loser column by ID to hourly_all
+# or use hourly data with winner and loser tag already added
+winners_and_losers_sthd
+
+# add species and CWR use yes or no to DF
+hourly_key<-aggregate(cwr_hrs_total~ID + species, data=hourly_all, max)
+hourly_key$cwr_use<-as.factor(ifelse(hourly_key$cwr_hrs_total>12, "yes" , "no"))
+
+# merge key with energy difference per location_combo
+location_combo_all<-merge(location_combo_diff_id, location_key, by.x="location_combo", by.y="location_combo")
+
+# merge hourly_key with location data
+location_all<-merge(location_combo_all, hourly_key, by.x="ID", by.y="ID")
+
+# convert species to factor
+location_all$species<-as.factor(location_all$species)
+# summarize energy used per location
+aggregate(location_combo_diff~ cwr_use + location + species, data=location_all, sum)
+
+```
+
+
+```{r simple linear model}
+lm1<-lm(p_energy_lost~km_day+temp_ratio+Initial_energy_density, data=end_condition_plus_temps_sthd)
+summary(lm1)
+```
+
+
+
+
+
+###############################################
+```{r create num at john day, echo=FALSE, eval=FALSE}
+# create a column for number of fish passing over mcnary dam per hour for chinook
+mvmt_status_chnk$mcnary<-0
+for (i in 1:dim(mvmt_status_chnk)[1]){
+  mvmt_status_chnk$mcnary[i]<-mvmt_status_chnk[i+1,9]-mvmt_status_chnk[i,9]
+}
+
+# create a column for number of fish passing over john day dam per hour for steelhead
+mvmt_status_sthd$mcnary<-0
+for (i in 1:dim(mvmt_status_sthd)[1]){
+  mvmt_status_sthd$mcnary[i]<-mvmt_status_sthd[i+1,9]-mvmt_status_sthd[i,9]
+}
+
+```
+
+
+```{r convert hours to jday, echo=FALSE, eval=FALSE}
+# chinook
+mvmt_status_chnk$jday<-floor(mvmt_status_chnk$Time.Step / 24) + jday_start # convert hour time step to julian day
+mcnaryperday_chnk<-aggregate(mcnary~jday, data=mvmt_status_chnk, sum) #sum chinook passing mcnary dam per hour to per day
+
+# steelhead
+mvmt_status_sthd$jday<-floor(mvmt_status_sthd$Time.Step / 24) + jday_start # convert hour time step to julian day
+mcnaryperday_sthd<-aggregate(mcnary~jday, data=mvmt_status_sthd, sum) #sum chinook passing mcnary dam per hour to per day
+```
+
+
+```{r import DART dalles passage, echo=FALSE, eval=FALSE}
+# import fall chinook 10 yr average DART john day passage data
+chnk_mcnary<-read.table(paste(caldir,"/DART_McNary/mcnary_10yravg_adultdaily.csv",sep=""), header = TRUE, sep = ",")
+
+# import all steelhead 10 year average DART john day passage data
+sthd_mcnary<-read.table(paste(caldir,"/DART_McNary/mcnary_10yravg_adultdaily.csv",sep=""), header = TRUE, sep = ",")
+
+## chinook
+# convert column to date format
+chnk_mcnary$Date<-as.Date(chnk_mcnary$Date, '%m/%d/%Y')
+# create julian day column from date column
+chnk_mcnary$jday<-yday(chnk_mcnary$Date)
+
+## steelhead
+# convert column to date format
+sthd_mcnary$Date<-as.Date(sthd_mcnary$Date, '%m/%d/%Y')
+# create julian day column from date column
+sthd_mcnary$jday<-yday(sthd_mcnary$Date)
+```
+
+
+```{r combine dart and model mcnary passage rate, echo=FALSE, eval=FALSE}
+# chinook
+# merge
+mcnaryperday_dart_hexsim_chnk<-merge(mcnaryperday_chnk, chnk_mcnary, by.x="jday", by.y="jday", all.x=TRUE)
+# convert to actual densities
+mcnaryperday_dart_hexsim_chnk$mcnary_number<-mcnaryperday_dart_hexsim_chnk$mcnary * density_conversion_factor
+
+# steelhead
+mcnaryperday_dart_hexsim_sthd<-merge(mcnaryperday_sthd, sthd_mcnary, by.x="jday", by.y="jday", all.x=TRUE)
+# convert to actual densities
+mcnaryperday_dart_hexsim_sthd$mcnary_number<-mcnaryperday_dart_hexsim_sthd$mcnary * density_conversion_factor
+
+# need to add complete date column
+mcnaryperday_dart_hexsim_chnk$Date<-mcnaryperday_dart_hexsim_sthd$Date
+```
+
+
+```{r plot mcnary passage timing, echo=FALSE, eval=FALSE, fig.cap="Fig. 3. Modeled time of arrival at the Dalles Dam compared with observed passage dates from DART."}
+
+# plot dimension
+par(mfrow=c(2,2))
+# chinook
+plot(mcnary_number~Date, data=mcnaryperday_dart_hexsim_chnk, ylab="Number of individuals", type="l", lty=1, ylim=c(0,20000), col="blue", lwd=2, main="Fall Chinook")
+lines(Chinook.10YearAvg~Date, data=mcnaryperday_dart_hexsim_chnk, ylab="Number of individuals", type="l", lty=1, lwd=2)
+legend("topleft", legend=c("HexSim", "Observed"), col=c("blue", "black"), lwd=2, lty=1, cex=0.8)
+
+# steelhead
+plot(mcnary_number~Date, data=mcnaryperday_dart_hexsim_sthd, ylab="Number of individuals", type="l", lty=1, ylim=c(0,20000), col="purple", lwd=2, main="Summer Steelhead")
+lines(Steelhead.10YearAvg~Date, data=mcnaryperday_dart_hexsim_sthd, ylab="Number of individuals", type="l", lty=1, lwd=2)
+legend("topleft", legend=c("HexSim", "Observed"), col=c("purple", "black"), lwd=2, lty=1, cex=0.8)
+
+## create percent of population passing on a given date
+# chinook
+total_chnk_hexsim<-sum(mcnaryperday_dart_hexsim_chnk$mcnary_number)
+total_chnk_DART<-sum(mcnaryperday_dart_hexsim_chnk$Chinook.10YearAvg, na.rm=TRUE)
+
+mcnaryperday_dart_hexsim_chnk$mcnary_number_p<-100 * ( mcnaryperday_dart_hexsim_chnk$mcnary_number / total_chnk_hexsim )
+mcnaryperday_dart_hexsim_chnk$Chinook.10YearAvg_p<-100 * ( mcnaryperday_dart_hexsim_chnk$Chinook.10YearAvg / total_chnk_DART )
+
+# steelhead
+total_sthd_hexsim<-sum(mcnaryperday_dart_hexsim_sthd$mcnary_number)
+total_sthd_DART<-sum(mcnaryperday_dart_hexsim_sthd$Steelhead.10YearAvg, na.rm=TRUE)
+
+mcnaryperday_dart_hexsim_sthd$mcnary_number_p<-100 * ( mcnaryperday_dart_hexsim_sthd$mcnary_number / total_sthd_hexsim )
+mcnaryperday_dart_hexsim_sthd$Steelhead.10YearAvg_p<-100 * ( mcnaryperday_dart_hexsim_sthd$Steelhead.10YearAvg / total_sthd_DART )
+
+# plots
+plot(mcnary_number_p~Date, data=mcnaryperday_dart_hexsim_chnk, ylab="% of individuals", type="l", lty=1, ylim=c(0,10), col="blue", lwd=2)
+lines(Chinook.10YearAvg_p~Date, data=mcnaryperday_dart_hexsim_chnk, ylab="% of individuals", type="l", lty=1, lwd=2)
+legend("topleft", legend=c("HexSim", "Observed"), col=c("blue", "black"), lwd=2, lty=1, cex=0.8)
+
+plot(mcnary_number_p~Date, data=mcnaryperday_dart_hexsim_sthd, ylab="% of individuals", type="l", lty=1, ylim=c(0,10), col="blue", lwd=2)
+lines(Steelhead.10YearAvg_p~Date, data=mcnaryperday_dart_hexsim_sthd, ylab="% of individuals", type="l", lty=1, lwd=2)
+legend("topleft", legend=c("HexSim", "Observed"), col=c("blue", "black"), lwd=2, lty=1, cex=0.8)
+```
+

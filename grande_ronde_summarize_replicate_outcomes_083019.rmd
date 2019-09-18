@@ -492,8 +492,8 @@ psg_timing_gr_keefer$mc_date_4_plot<- as.POSIXct(psg_timing_gr_keefer$mc_date_ch
 f <- ggplot(data = psg_timing_gr_keefer, aes(x = mc_date_4_plot)) + geom_histogram()  + labs(x="Observed Passage date (McNary Dam)")
 f
 ```
-as.Date(c('1/1/2011', '1/1/2013'), format="%d/%m/%Y")
-+ xlim("2019-07-01", "2019-12-30")
+
+
 ```{r}
 g<-ggplot(data=columbia_current_cwr_current, aes(x=date)) + geom_histogram()  +labs(x="Modeled Passage time (days from Bonneville to Snake River confluence)")
 g
