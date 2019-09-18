@@ -395,22 +395,315 @@ p + facet_wrap(~scenario) + labs(x="Passage time (d)", y="Count", title="Snake R
 
 ```
 
-
-```{r terminus arrival histogram}
+```{r terminus arrival histogram preparation}
 # model starts on July 1 which is equivalent to julian day 182
 jday_start<-182
-# step is hour got to terminus
+
+# step is hour arrived at terminus
 # convert Step to julian day
-all_13_labels$jday<-floor(all_13_labels$Step / 24) + jday_start
+all_13_labels$terminus_jday<-floor(all_13_labels$Step / 24) + jday_start
 # convert julian day to date
-all_13_labels$date_ch<-chron(all_13_labels$jday, origin=c(month=1, day=1, year=2019))
+all_13_labels$terminus_date_ch<-chron(all_13_labels$terminus_jday, origin=c(month=1, day=1, year=2019))
 # convert date format to posixct
-all_13_labels$date<- as.POSIXct(all_13_labels$date_ch, "GMT") 
+all_13_labels$terminus_date<- as.POSIXct(all_13_labels$terminus_date_ch, "GMT") 
 
+# Time_entry is hour started from Bonneville
+# convert Step to julian day
+all_13_labels$entry_jday<-floor(all_13_labels$Time_entry / 24) + jday_start
+# convert julian day to date
+all_13_labels$entry_date_ch<-chron(all_13_labels$entry_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+all_13_labels$entry_date<- as.POSIXct(all_13_labels$entry_date_ch, "GMT") 
+```
+
+```{r terminus arrival histogram}
 # histograms
-p <- ggplot(data = all_13_labels, aes(x = date)) + geom_histogram()
-p + facet_wrap(~scenario) + labs(x="Exit Day", y="Count", title="Snake River fall Chinook")
+p <- ggplot(data = all_13_labels, aes(x = terminus_date)) + geom_histogram()
+p + facet_wrap(~scenario) + labs(x="Exit Day", y="Count", title="Snake River Fall Chinook salmon")
 
+```
+
+
+########################################################################################################
+
+```{r import hourly, eval=TRUE}
+# import in combined replicate DFs
+E14<-fread("D:/Results_4Populations/snake_Columbia2017B/combined/E5.csv", header=TRUE, sep=",")
+F14<-fread("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F5.csv", header=TRUE, sep=",")
+G14<-fread("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G5.csv", header=TRUE, sep=",")
+H14<-fread("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H5.csv", header=TRUE, sep=",")
+
+# rename columns
+names(E14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(F14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(G14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(H14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+
+# add scenario designation
+E14$scenario<-"Columbia 2017, CWR Current"
+F14$scenario<-"Columbia 2017, No CWR"
+G14$scenario<-"Columbia 2040 (2017), CWR Current"
+H14$scenario<-"Columbia 2040 (2017), No CWR"
+
+# create scenario factor for each scenario
+E14$scenario<-as.factor(E14$scenario)
+F14$scenario<-as.factor(F14$scenario)
+G14$scenario<-as.factor(G14$scenario)
+H14$scenario<-as.factor(H14$scenario)
+  
+# combine all
+hourly_all<-rbind.data.frame(E14, F14, G14, H14)
+# change to factor
+hourly_all$scenario<-as.factor(hourly_all$scenario)
+```
+
+```{r calc mean temperature experienced from hourly}
+mean_temp_E14<-aggregate(temp_1~ID, data=E14, mean)
+mean_temp_F14<-aggregate(temp_1~ID, data=F14, mean)
+mean_temp_G14<-aggregate(temp_1~ID, data=G14, mean)
+mean_temp_H14<-aggregate(temp_1~ID, data=H14, mean)
+
+```
+
+```{r combine mean temp with end condition}
+# subset end_condition all scenarios to one scenario
+all_13_labels_A<-dplyr::filter(all_13_labels, scenario == "Columbia 2017, CWR Current")
+# join with mean temp for scenario
+hourly_and_end_A<-merge(all_13_labels_A, mean_temp_E14, by.x="ID", by.y="ID")
+```
+
+
+```{r A plot duration vs energy used}
+dur1<-ggplot(hourly_and_end_A, aes(x=Time_in_system_d, y=ED_per_used, color=Total_hours_cold_water)) +   
+  geom_point() + 
+  labs( y="Energy lost (%)", x="Time migrating (d)", title="Snake River Fall Chinook salmon") + 
+  theme_classic() + scale_color_gradient(name="Hours in Cold Water", low="blue", high="red")
+```
+
+```{r B plot duration vs energy used}
+dur2<-ggplot(hourly_and_end_A, aes(x=Time_in_system_d, y=ED_per_used, color=temp_1)) +   
+  geom_point() + 
+  labs( y="Energy lost (%)", x="Time migrating (d)") + 
+  theme_classic() + scale_color_gradient(name="Mean temperature", low="blue", high="red")
+```
+
+```{r C plot duration vs energy used}
+dur3<-ggplot(hourly_and_end_A, aes(x=Time_in_system_d, y=ED_per_used, color=entry_jday)) +   
+  geom_point() + 
+  labs( y="Energy lost (%)", x="Time migrating (d)") + 
+  theme_classic() + scale_color_gradient(name="Entry date", low="blue", high="red")
+```
+
+```{r D plot duration vs energy used}
+dur4<-ggplot(hourly_and_end_A, aes(x=Time_in_system_d, y=ED_per_used, color=terminus_jday)) +   
+  geom_point() + 
+  labs( y="Energy lost (%)", x="Time migrating (d)") + 
+  theme_classic() + scale_color_gradient(name="Exit date", low="blue", high="red")
+```
+
+```{r plot formatting 2}
+width1 = 4.5
+height1 = 7
+text1 = 8
+```
+
+```{r plot energy lost scatter plots together, fig.height = 7, fig.width = 6, fig.cap="Fig. 5. Plots of percent energy lost versus the number of days spent migrating from Bonneville to confluence with Snake River for Snake River Fall Chinook salmon. Colors represent A. total hours spent residing in cold water refuges, B. mean temperature experienced during migration, C. start date for migration in julian days, and D. julian date of arrival at Snake River confluence."}
+plot_grid( dur1, dur2, dur3, dur4, 
+          labels = c("A", "B", "C", "D"),align="v",
+          ncol = 1, nrow = 4)
+```
+
+```{r add refuge or mainstem identifier to hourly for plot}
+E14$location<-"Columbia"
+E14$location[E14$refuge_id > 5]<-"Refuge"
+```
+
+
+```{r add date column to hourly data}
+# convert Step to julian day
+E14$step_jday<-floor(E14$Step / 24) + jday_start
+# convert julian day to date
+E14$step_date_ch<-chron(E14$step_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+E14$step_date<- as.POSIXct(E14$step_date_ch, "GMT") 
+
+```
+
+```{r add refuge name column to hourly data}
+# refuge_name2<-c("Below Bonneville Dam", "Bonneville Pool", "The Dalles Pool", "John Day Pool", "Above McNary", "Skamokawa Creek", "Skamokawa Plume", "Mill Creek", "Abernethy Creek", "Abernethy Plume", "Germany Creek", "Cowlitz River", "Cowlitz Plume", "Kalama River", "Kalama Plume", "Lewis River", "Lewis Plume", "Sandy River", "Sandy Plume", "Washougal River", "Washougal Plume", "Bridal Veil Creek", "Bridal Veil Plume", "Wahkeena Creek", "Oneonta Creek", "Oneonta Plume", "Tanner Creek", "Tanner Plume", "Eagle Creek", "Eagle Plume", "Rock Creek", "Rock Plume", "Herman Creek ", "Herman Plume", "Wind River", "Wind Plume", "Little White Salmon River", "Little White Salmon Plume", "White Salmon River", "White Salmon Plume", "Klickitat River", "Klickitat Plume", "Deschutes River", "Deschutes Plume", "Umatilla River")
+
+refuge_name2<-c("Below Bonneville Dam", "Bonneville Pool", "The Dalles Pool", "John Day Pool", "Above McNary", "Skamokawa", "Skamokawa", "Mill", "Abernethy", "Abernethy", "Germany", "Cowlitz", "Cowlitz", "Kalama", "Kalama", "Lewis", "Lewis", "Sandy", "Sandy", "Washougal", "Washougal", "Bridal Veil", "Bridal Veil", "Wahkeena", "Oneonta", "Oneonta", "Tanner", "Tanner", "Eagle", "Eagle", "Rock", "Rock", "Herman", "Herman", "Wind", "Wind", "Little White Salmon", "Little White Salmon", "White Salmon", "White Salmon", "Klickitat", "Klickitat", "Deschutes", "Deschutes", "Umatilla")
+
+refuge_name2_seq<-seq(1,45,1)
+
+refuges_and_refuge_IDs<-cbind.data.frame(refuge_name2_seq, refuge_name2)
+
+# all hourly with thermal patch name combine and plot
+E14<-merge(E14, refuges_and_refuge_IDs, by.x="refuge_id", by.y="refuge_name2_seq")
+```
+
+
+```{r select some winners}
+gr_winners<-dplyr::filter(hourly_and_end_A, ED_per_used < 13 & ED_per_used > 12 )
+dim(gr_winners)
+
+# create column for include
+gr_winners$winner_yes<-"y"
+# select 10 winners from hourly data
+E14$ID<-as.factor(E14$ID)
+# drop all columns except ID and winner flag
+gr_winners<-dplyr::select(gr_winners, "ID", "winner_yes")
+# merge winner DF with hourly
+E14_winners<-merge(E14, gr_winners, by.x="ID", by.y="ID")
+# drop unused factor levels
+E14_winners$refuge_name2.y<-as.factor(E14_winners$refuge_name2.y)
+```
+
+```{r select some losers}
+gr_losers<-dplyr::filter(hourly_and_end_A, ED_per_used > 29 & ED_per_used < 30)
+dim(gr_losers)
+# create column for include
+gr_losers$losers_yes<-"y"
+# select 10 losers from hourly data
+E14$ID<-as.factor(E14$ID)
+# drop all columns except ID and winner flag
+gr_losers<-dplyr::select(gr_losers, "ID", "losers_yes")
+# merge winner DF with hourly
+E14_losers<-merge(E14, gr_losers, by.x="ID", by.y="ID")
+# drop unused factor levels
+E14_losers$refuge_name2.y<-as.factor(E14_losers$refuge_name2.y)
+```
+
+```{r plot limits 1}
+xaxis1<-"2019-07-01 17:00:00"
+xaxis2<-"2019-11-01 17:00:00"
+yaxis1<-5000
+yaxis2<-14000
+```
+
+```{r plot winners 1}
+step_refuge_win<-ggplot(E14_winners, aes(x=step_date, y=energy, color=location)) +   
+  geom_point() + xlim( as.POSIXct("2019-07-01 17:00:00"), as.POSIXct("2019-11-01 17:00:00")) + ylim(yaxis1,yaxis2) +
+  labs( y="Energy", x="Date", title="Winners", color="Location") + 
+  theme_classic() +  scale_color_manual(values=c("darkred", "blue4"))
+
+#step_refuge_win 
+```
+
+```{r plot losers 1}
+step_refuge_loser<-ggplot(E14_losers, aes(x=step_date, y=energy, color=location)) +   
+  geom_point() + xlim( as.POSIXct("2019-07-01 17:00:00"), as.POSIXct("2019-11-01 17:00:00")) + ylim(yaxis1,yaxis2) +
+  labs( y="Energy", x="Date", title="Losers", color="Location") + 
+  theme_classic()  +  scale_color_manual(values=c("darkred", "blue4"))
+
+#step_refuge_loser
+```
+
+```{r plot winners and losers 1, fig.height = 8, fig.width = 6, fig.cap="Fig. 6. "}
+plot_grid( step_refuge_win, step_refuge_loser, 
+          labels = c("A", "B"),align="v",
+          ncol = 1, nrow = 2)
+```
+
+```{r plot limits 2}
+xaxis1<-"2019-07-01 17:00:00"
+xaxis2<-"2019-11-01 17:00:00"
+yaxis1<-5000
+yaxis2<-14000
+```
+
+
+```{r plot winners 2}
+step_temp_win<-ggplot(E14_winners, aes(x=step_date, y=energy, colour=temp_1 )) +   
+  geom_point() + xlim( as.POSIXct("2019-07-01 17:00:00"), as.POSIXct("2019-11-01 17:00:00")) + ylim(yaxis1,yaxis2) +
+  labs( y="Energy", x="Date", title="Winners", color="Temperature") + scale_color_gradient(high="red", low="blue", limits=c(5,25)) + theme_classic()
+
+#step_temp_win 
+```
+
+```{r plot losers 2}
+step_temp_loser<-ggplot(E14_losers, aes(x=step_date, y=energy, colour=temp_1)) +   
+  geom_point() + xlim( as.POSIXct("2019-07-01 17:00:00"), as.POSIXct("2019-11-01 17:00:00")) + ylim(yaxis1,yaxis2) +
+  labs( y="Energy", x="Date", title="Losers", color="Temperature") + scale_color_gradient(high="red", low="blue", limits=c(5,25)) + theme_classic()
+
+#step_temp_loser
+```
+
+```{r plot winners and losers 2, fig.height = 8, fig.width = 6, fig.cap="Fig. 7. "}
+plot_grid( step_temp_win, step_temp_loser, 
+          labels = c("A", "B"),align="v",
+          ncol = 1, nrow = 2)
+```
+
+
+```{r plot limits 3}
+xaxis1<-"2019-07-01 17:00:00"
+xaxis2<-"2019-11-01 17:00:00"
+yaxis1<-5
+yaxis2<-25
+```
+
+
+```{r plot winners 3}
+step_temp_win2<-ggplot(E14_winners, aes(x=step_date, y=temp_1, color=ID)) +   
+  geom_point() + xlim( as.POSIXct("2019-07-01 17:00:00"), as.POSIXct("2019-11-01 17:00:00")) + ylim(yaxis1,yaxis2) +
+  labs( y="Temperature", x="Date", title="Winners", color="ID") + 
+  theme_classic() + theme(legend.position = "none")
+
+#step_temp_win2
+```
+
+```{r plot losers 3}
+step_temp_loser2<-ggplot(E14_losers, aes(x=step_date, y=temp_1, color=ID)) +   
+  geom_point() + xlim( as.POSIXct("2019-07-01 17:00:00"), as.POSIXct("2019-11-01 17:00:00")) + ylim(yaxis1,yaxis2) +
+  labs( y="Temperature", x="Date", title="Losers", color="ID") + 
+  theme_classic()  + theme(legend.position = "none")
+
+
+#step_temp_loser2
+```
+
+```{r plot winners and losers 3, fig.height = 8, fig.width = 6, fig.cap="Fig. 8. "}
+plot_grid( step_temp_win2, step_temp_loser2, 
+          labels = c("A", "B"),align="v",
+          ncol = 1, nrow = 2)
+```
+
+```{r plot limits 4}
+xaxis1<-"2019-07-01 17:00:00"
+xaxis2<-"2019-11-01 17:00:00"
+yaxis1<-5000
+yaxis2<-12000
+```
+
+summary(E14_winners$refuge_name2.y)
+```{r plot winners 4}
+
+step_refuge_win2<-ggplot(E14_winners, aes(x=step_date, y=energy, color=refuge_name2.y)) +   
+  geom_point() + xlim( as.POSIXct("2019-07-01 17:00:00"), as.POSIXct("2019-11-01 17:00:00")) + ylim(yaxis1,yaxis2) +
+  labs( y="Energy", x="Date", title="Winners", color="Location") + 
+  theme_classic() +  scale_color_manual(values=c("brown4", "brown1", "aquamarine", "gold1", "blue", "brown3", "cyan4", "darkorchid1",  "brown2", "darkblue", "green")) + 
+  guides(colour = guide_legend(override.aes = list(size = 6)))
+
+#step_refuge_win2 
+```
+
+summary(E14_losers$refuge_name2.y)
+```{r plot losers 4}
+step_refuge_loser2<-ggplot(E14_losers, aes(x=step_date, y=energy, color=refuge_name2.y)) +   
+  geom_point() + xlim( as.POSIXct("2019-07-01 17:00:00"), as.POSIXct("2019-11-01 17:00:00")) + ylim(yaxis1,yaxis2) +
+  labs( y="Energy", x="Date", title="Losers", color="Location") + 
+  theme_classic()  +  scale_color_manual(values=c("brown4", "brown1", "aquamarine", "gold1",  "brown3", "cyan4", "darkorchid1",  "brown2", "darkblue","orange", "green")) + 
+  guides(colour = guide_legend(override.aes = list(size = 6)))
+
+
+#step_refuge_loser2
+```
+
+```{r plot winners and losers 4, fig.height = 8, fig.width = 6, fig.cap="Fig. 9. "}
+plot_grid( step_refuge_win2, step_refuge_loser2, 
+          labels = c("A", "B"),align="v",
+          ncol = 1, nrow = 2)
 ```
 
 
