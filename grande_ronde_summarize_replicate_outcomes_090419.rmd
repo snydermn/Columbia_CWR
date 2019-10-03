@@ -376,7 +376,7 @@ height1 = 7
 text1 = 8
 ```
 
-```{r plot energy lost scatter plots together, fig.height = 7, fig.width = 6, fig.cap="Fig. 5. Plots of percent energy lost versus the number of days spent migrating from Bonneville to confluence with Snake River for Grande Ronde River summer steelhead. Colors represent A. total hours spent residing in cold water refuges, B. mean temperature experienced during migration, C. start date for migration in julian days, and D. julian date of arrival at Snake River confluence."}
+```{r plot energy lost scatter plots together, eval=FALSE, fig.height = 7, fig.width = 6, fig.cap="Fig. 5. Plots of percent energy lost versus the number of days spent migrating from Bonneville to confluence with Snake River for Grande Ronde River summer steelhead. Colors represent A. total hours spent residing in cold water refuges, B. mean temperature experienced during migration, C. start date for migration in julian days, and D. julian date of arrival at Snake River confluence."}
 plot_grid( dur1, dur2, dur3, dur4, 
           labels = c("A", "B", "C", "D"),align="v",
           ncol = 1, nrow = 4)
@@ -414,7 +414,7 @@ E14<-merge(E14, refuges_and_refuge_IDs, by.x="refuge_id", by.y="refuge_name2_seq
 
 ```{r select some winners}
 gr_winners<-dplyr::filter(hourly_and_end_A, ED_per_used < 20 & ED_per_used > 19.75 )
-dim(gr_winners)
+#dim(gr_winners)
 
 # create column for include
 gr_winners$winner_yes<-"y"
@@ -430,7 +430,7 @@ E14_winners$refuge_name2.y<-as.factor(E14_winners$refuge_name2.y)
 
 ```{r select some losers}
 gr_losers<-dplyr::filter(hourly_and_end_A, ED_per_used > 41.5 & ED_per_used < 42)
-dim(gr_losers)
+#dim(gr_losers)
 # create column for include
 gr_losers$losers_yes<-"y"
 # select 10 losers from hourly data
@@ -468,7 +468,7 @@ step_refuge_loser<-ggplot(E14_losers, aes(x=step_date, y=energy, color=location)
 #step_refuge_loser
 ```
 
-```{r plot winners and losers 1, fig.height = 8, fig.width = 6, fig.cap="Fig. 6. "}
+```{r plot winners and losers 1, eval=FALSE, fig.height = 8, fig.width = 6, fig.cap="Fig. 6. "}
 plot_grid( step_refuge_win, step_refuge_loser, 
           labels = c("A", "B"),align="v",
           ncol = 1, nrow = 2)
@@ -498,7 +498,7 @@ step_temp_loser<-ggplot(E14_losers, aes(x=step_date, y=energy, colour=temp_1)) +
 #step_temp_loser
 ```
 
-```{r plot winners and losers 2, fig.height = 8, fig.width = 6, fig.cap="Fig. 7. "}
+```{r plot winners and losers 2, eval=FALSE, fig.height = 8, fig.width = 6, fig.cap="Fig. 7. "}
 plot_grid( step_temp_win, step_temp_loser, 
           labels = c("A", "B"),align="v",
           ncol = 1, nrow = 2)
@@ -532,7 +532,7 @@ step_temp_loser2<-ggplot(E14_losers, aes(x=step_date, y=temp_1, color=ID)) +
 #step_temp_loser2
 ```
 
-```{r plot winners and losers 3, fig.height = 8, fig.width = 6, fig.cap="Fig. 8. "}
+```{r plot winners and losers 3, eval=FALSE, fig.height = 8, fig.width = 6, fig.cap="Fig. 8. "}
 plot_grid( step_temp_win2, step_temp_loser2, 
           labels = c("A", "B"),align="v",
           ncol = 1, nrow = 2)
@@ -545,7 +545,6 @@ yaxis1<-5000
 yaxis2<-12000
 ```
 
-summary(E14_winners$refuge_name2.y)
 ```{r plot winners 4}
 
 step_refuge_win2<-ggplot(E14_winners, aes(x=step_date, y=energy, color=refuge_name2.y)) +   
@@ -557,7 +556,6 @@ step_refuge_win2<-ggplot(E14_winners, aes(x=step_date, y=energy, color=refuge_na
 #step_refuge_win2 
 ```
 
-summary(E14_losers$refuge_name2.y)
 ```{r plot losers 4}
 step_refuge_loser2<-ggplot(E14_losers, aes(x=step_date, y=energy, color=refuge_name2.y)) +   
   geom_point() + xlim( as.POSIXct("2019-07-01 17:00:00"), as.POSIXct("2019-11-01 17:00:00")) + ylim(yaxis1,yaxis2) +
@@ -569,7 +567,7 @@ step_refuge_loser2<-ggplot(E14_losers, aes(x=step_date, y=energy, color=refuge_n
 #step_refuge_loser2
 ```
 
-```{r plot winners and losers 4, fig.height = 8, fig.width = 6, fig.cap="Fig. 9. "}
+```{r plot winners and losers 4, eval=FALSE, fig.height = 8, fig.width = 6, fig.cap="Fig. 9. "}
 plot_grid( step_refuge_win2, step_refuge_loser2, 
           labels = c("A", "B"),align="v",
           ncol = 1, nrow = 2)

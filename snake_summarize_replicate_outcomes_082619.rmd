@@ -23,7 +23,7 @@ library(tidyverse)
 A13<-read.table("D:/Results_4Populations/snake_Columbia2040_current/combined/A4.csv", header=TRUE, sep=",")
 B13<-read.table("D:/Results_4Populations/snake_Columbiarestored_CWRcurrent/combined/B4.csv", header=TRUE, sep=",")
 C13<-read.table("D:/Results_4Populations/snake_current_current/combined/C4.csv", header=TRUE, sep=",")
-D13<-read.table("D:/Results_4Populations/snake_current_restoredCWR/combined/D4.csv", header=TRUE, sep=",")
+#D13<-read.table("D:/Results_4Populations/snake_current_restoredCWR/combined/D4.csv", header=TRUE, sep=",")
 E13<-read.table("D:/Results_4Populations/snake_Columbia2040_No_CWR/combined/E4.csv", header=TRUE, sep=",")
 F13<-read.table("D:/Results_4Populations/snake_Columbiarestored_No_CWR/combined/F4.csv", header=TRUE, sep=",")
 G13<-read.table("D:/Results_4Populations/snake_current_current_No_CWR/combined/G4.csv", header=TRUE, sep=",")
@@ -32,7 +32,7 @@ G13<-read.table("D:/Results_4Populations/snake_current_current_No_CWR/combined/G
 names(A13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
 names(B13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
 names(C13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
-names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+#names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
 names(E13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
 names(F13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
 names(G13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
@@ -55,7 +55,7 @@ return(DF)
 A13<-avail_energy_diff(A13)
 B13<-avail_energy_diff(B13)
 C13<-avail_energy_diff(C13)
-D13<-avail_energy_diff(D13)
+#D13<-avail_energy_diff(D13)
 E13<-avail_energy_diff(E13)
 F13<-avail_energy_diff(F13)
 G13<-avail_energy_diff(G13)
@@ -64,12 +64,12 @@ G13<-avail_energy_diff(G13)
 A13$scenario<-"A"
 B13$scenario<-"B"
 C13$scenario<-"C"
-D13$scenario<-"D"
+#D13$scenario<-"D"
 E13$scenario<-"E"
 F13$scenario<-"F"
 G13$scenario<-"G"
 # combine DFs 
-all_13<-rbind.data.frame(A13, B13, C13, D13, E13, F13, G13)
+all_13<-rbind.data.frame(A13, B13, C13, E13, F13, G13)
 ```
 
 
@@ -118,7 +118,7 @@ a1<-ggplot(A13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * 
 
 ```{r B13 hist}
 b1<-ggplot(B13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,50) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
-title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia Restored, \nCWR Current")
+title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia Historic, \nCWR Current")
 ```
 
 ```{r C13 hist}
@@ -127,8 +127,8 @@ title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Energy
 ```
 
 ```{r D13 hist}
-d1<-ggplot(D13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,50) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
-title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia Current, \nCWR Restored")
+#d1<-ggplot(D13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,50) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+#title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia Current, \nCWR Restored")
 ```
 
 ```{r E13 hist}
@@ -138,7 +138,7 @@ title=element_text(size=8), axis.title=element_text(size=text1)) + labs(x="Energ
 
 ```{r F13 hist}
 f1<-ggplot(F13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,50) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
- title=element_text(size=8), axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia Restored, \nNo CWRs")
+ title=element_text(size=8), axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia Historic, \nNo CWRs")
 ```
 
 ```{r G13 hist}
@@ -146,14 +146,14 @@ g1<-ggplot(G13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * 
  title=element_text(size=8), axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia Current, \nNo CWRs")
 ```
 
-```{r plot energy hist together, fig.cap="Fig. 1. Histogram of percent energy lost for modeled Snake River Fall Chinook salmon migrating through four different modeled thermalscapes."}
-plot_grid(c1, a1, b1,  d1, g1,e1, f1, 
-          labels = c("A", "B", "C", "D", "E","F", "G" ),
-          ncol = 3, nrow = 3)
+```{r plot energy hist together, fig.cap="Fig. 1. Histogram of percent energy lost for modeled Snake River Fall Chinook salmon migrating through different modeled thermalscapes."}
+plot_grid(c1, a1, b1, g1,e1, f1, 
+          labels = c("A", "B", "C", "D", "E","F"),
+          ncol = 3, nrow = 2)
 
 ```
 
-```{r energy lost boxplot, fig.cap="Fig. 2. Boxplot of percent energy lost for modeled Snake River Fall Chinook migrating through four different modeled thermalscapes."}
+```{r energy lost boxplot, fig.cap="Fig. 2. Boxplot of percent energy lost for modeled Snake River Fall Chinook migrating through different modeled thermalscapes."}
 all_13$scenario<-as.factor(all_13$scenario)
 
 out2<-ggplot(all_13, aes(x=scenario, y=ED_per_used, group=scenario)) +   
@@ -161,14 +161,13 @@ out2<-ggplot(all_13, aes(x=scenario, y=ED_per_used, group=scenario)) +
   labs( y="Energy lost (%)", title="Snake River Fall Chinook") + 
   theme_classic() 
 
-out2 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c("C","G", "A","E", "B", "F","D"), labels=c(
+out2 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c("C","G", "A","E", "B", "F"), labels=c(
   "Columbia Current,\n CWR Current",
   "Columbia Current, \nNo CWRs", 
   "Columbia 2040, \nCWR Current", 
   "Columbia 2040, \nNo CWRs", 
- "Columbia Restored, \nCWR Current", 
- "Columbia Restored, \nNo CWRs",
-  "Columbia Current, \nCWR Restored")) 
+ "Columbia Historic, \nCWR Current", 
+ "Columbia Historic, \nNo CWRs")) 
 ```
 
 
@@ -177,11 +176,11 @@ ED_used_table<-aggregate(ED_per_used~scenario, data=all_13, quantile)
 ED_used_table$scenario<-as.character(ED_used_table$scenario)
 ED_used_table<-format(ED_used_table, digits = 2)
 ED_used_table$scenario[ED_used_table$scenario == "A"] <- "Columbia 2040, CWR Current"
-ED_used_table$scenario[ED_used_table$scenario == "B"] <- "Columbia Restored, CWR Current"
+ED_used_table$scenario[ED_used_table$scenario == "B"] <- "Columbia Historic, CWR Current"
 ED_used_table$scenario[ED_used_table$scenario == "C"] <- "Columbia Current, CWR Current"
-ED_used_table$scenario[ED_used_table$scenario == "D"] <- "Columbia Current, CWR Restored"
+#ED_used_table$scenario[ED_used_table$scenario == "D"] <- "Columbia Current, CWR Restored"
 ED_used_table$scenario[ED_used_table$scenario == "E"] <- "Columbia 2040, No CWRs"
-ED_used_table$scenario[ED_used_table$scenario == "F"] <- "Columbia Restored, No CWRs"
+ED_used_table$scenario[ED_used_table$scenario == "F"] <- "Columbia Historic, No CWRs"
 ED_used_table$scenario[ED_used_table$scenario == "G"] <- "Columbia Current, No CWRs"
 
 # create table with pretty format
@@ -194,7 +193,7 @@ kable(ED_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median"
 A14<-fread("D:/Results_4Populations/snake_Columbia2040_current/combined/A5.csv", header=TRUE, sep=",")
 B14<-fread("D:/Results_4Populations/snake_Columbiarestored_CWRcurrent/combined/B5.csv", header=TRUE, sep=",")
 C14<-fread("D:/Results_4Populations/snake_current_current/combined/C5.csv", header=TRUE, sep=",")
-D14<-fread("D:/Results_4Populations/snake_current_restoredCWR/combined/D5.csv", header=TRUE, sep=",")
+#D14<-fread("D:/Results_4Populations/snake_current_restoredCWR/combined/D5.csv", header=TRUE, sep=",")
 E14<-fread("D:/Results_4Populations/snake_Columbia2040_No_CWR/combined/E5.csv", header=TRUE, sep=",")
 F14<-fread("D:/Results_4Populations/snake_Columbiarestored_No_CWR/combined/F5.csv", header=TRUE, sep=",")
 G14<-fread("D:/Results_4Populations/snake_current_current_No_CWR/combined/G5.csv", header=TRUE, sep=",")
@@ -203,7 +202,7 @@ G14<-fread("D:/Results_4Populations/snake_current_current_No_CWR/combined/G5.csv
 names(A14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
 names(B14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
 names(C14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
-names(D14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+#names(D14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
 names(E14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
 names(F14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
 names(G14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
@@ -211,7 +210,7 @@ names(G14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "tim
 ```
 
 
-```{r calc DD GT 18 for each scenario}
+```{r calc DD GT 18 for each scenario, eval=FALSE}
 # function to calculate cumulative degree days above a certain degree
 dum_dd<-function(threshold, DF){
   DF_subset<-DF[which(DF$temp_1 >threshold),]
@@ -245,81 +244,6 @@ all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18, 
 ```
 
 
-```{r A14 hist}
-a2<-ggplot(A14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
- title=element_text(size=8), axis.title=element_text(size=text1)) + labs(x="Cumulative degree days >18°C", y="Percent", title="Columbia 2040, \nCWR Current") 
-```
-
-```{r B14 hist}
-b2<-ggplot(B14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
-title=element_text(size=8), axis.title=element_text(size=text1)) + labs(x="Cumulative degree days >18°C", y="Percent", title="Columbia Restored, \nCWR Current")
-```
-
-```{r C14 hist}
-c2<-ggplot(C14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
-        title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Cumulative degree days >18°C", y="Percent", title="Columbia Current, \nCWR Current")
-```
-
-```{r D14 hist}
-d2<-ggplot(D14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
-        title=element_text(size=8), axis.title=element_text(size=text1)) + labs(x="Cumulative degree days >18°C", y="Percent", title="Columbia Current, \nCWR Restored")
-```
-
-```{r E14 hist}
-e2<-ggplot(E14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
-        title=element_text(size=8), axis.title=element_text(size=text1)) + labs(x="Cumulative degree days >18°C", y="Percent", title="Columbia 2040, \nNo CWRs")
-```
-
-```{r F14 hist}
-f2<-ggplot(F14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
-       title=element_text(size=8), axis.title=element_text(size=text1)) + labs(x="Cumulative degree days >18°C", y="Percent", title="Columbia Restored, \nNo CWRs")
-```
-
-```{r G14 hist}
-g2<-ggplot(G14_ddGT18, aes(x=temp_1)) + geom_histogram(aes(x=temp_1, y=100 * (..count..)/sum(..count..))) + xlim(0,1000) + ylim(0,30) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
-        title=element_text(size=8), axis.title=element_text(size=text1)) + labs(x="Cumulative degree days >18°C", y="Percent", title="Columbia Current, \nNo CWRs")
-```
-
-```{r plot DD hist together, fig.cap="Fig. 3. Histograms of modeled Snake River Fall Chinook accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
-plot_grid(c2, a2, b2, d2, g2, e2, f2,
-          labels = c("A", "B", "C", "D", "E", "F", "G"),
-          ncol = 3, nrow = 3)
-```
-
-```{r cum DD boxplot, fig.cap="Fig. 4. Boxplots of modeled Snake River Fall Chinook accumulated degrees day over 18°C from Bonneville to the Snake River confluence in the Columbia River."}
-all_14_ddGT18$scenario<-as.factor(all_14_ddGT18$scenario)
-
-out3<-ggplot(all_14_ddGT18, aes(x=scenario, y=temp_1, group=scenario)) +   
-  geom_boxplot() + 
-  labs( y="Cumulative degree days (>18°C)", title="Snake River Fall Chinook") + 
-  theme_classic() 
-
-out3 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c("C","G", "A","E", "B", "F","D"), labels=c(
-  "Columbia Current,\n CWR Current",
-  "Columbia Current, \nNo CWRs", 
-  "Columbia 2040, \nCWR Current", 
-  "Columbia 2040, \nNo CWRs", 
- "Columbia Restored, \nCWR Current", 
- "Columbia Restored, \nNo CWRs",
-  "Columbia Current, \nCWR Restored")) 
-```
-
-```{r DD lost table}
-DD_used_table<-aggregate(temp_1~scenario, data=all_14_ddGT18, quantile)
-DD_used_table$scenario<-as.character(DD_used_table$scenario)
-DD_used_table<-format(DD_used_table, digits = 0) # round 
-
-DD_used_table$scenario[DD_used_table$scenario == "A"] <- "Columbia 2040, CWR Current"
-DD_used_table$scenario[DD_used_table$scenario == "B"] <- "Columbia Restored, CWR Current"
-DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia Current, CWR Current"
-DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia Current, CWR Restored"
-DD_used_table$scenario[DD_used_table$scenario == "E"] <- "Columbia 2040, No CWRs"
-DD_used_table$scenario[DD_used_table$scenario == "F"] <- "Columbia Restored, No CWRs"
-DD_used_table$scenario[DD_used_table$scenario == "G"] <- "Columbia Current, No CWRs"
-# create table with pretty format
-kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 2. Cumulative degree days (>18°C) used across different HexSim thermalscapes summarized for Snake River Fall Chinook.", digits=1)
-```
-
 ```{r import refuges data, eval=TRUE, echo=FALSE}
 # import refuges population census table
 # only has refuge density for hours when a refuge is occupied
@@ -327,7 +251,7 @@ kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median"
 A9<-read.table("D:/Results_4Populations/snake_Columbia2040_current/combined/A9.csv", header=TRUE, sep=",")
 B9<-read.table("D:/Results_4Populations/snake_Columbiarestored_CWRcurrent/combined/B9.csv", header=TRUE, sep=",")
 C9<-read.table("D:/Results_4Populations/snake_current_current/combined/C9.csv", header=TRUE, sep=",")
-D9<-read.table("D:/Results_4Populations/snake_current_restoredCWR/combined/D9.csv", header=TRUE, sep=",")
+#D9<-read.table("D:/Results_4Populations/snake_current_restoredCWR/combined/D9.csv", header=TRUE, sep=",")
 E9<-read.table("D:/Results_4Populations/snake_Columbia2040_No_CWR/combined/E9.csv", header=TRUE, sep=",")
 F9<-read.table("D:/Results_4Populations/snake_Columbiarestored_No_CWR/combined/F9.csv", header=TRUE, sep=",")
 G9<-read.table("D:/Results_4Populations/snake_current_current_No_CWR/combined/G9.csv", header=TRUE, sep=",")
@@ -339,8 +263,8 @@ colnames(B9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_c
             "retain_chinook","retain_steelhead", "removed_chinook", "removed_steelhead")
 colnames(C9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
             "retain_chinook","retain_steelhead", "removed_chinook", "removed_steelhead")
-colnames(D9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
-            "retain_chinook","retain_steelhead", "removed_chinook", "removed_steelhead")
+#colnames(D9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
+#            "retain_chinook","retain_steelhead", "removed_chinook", "removed_steelhead")
 colnames(E9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
             "retain_chinook","retain_steelhead", "removed_chinook", "removed_steelhead")
 colnames(F9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
@@ -371,7 +295,7 @@ refuge_id<-cbind.data.frame(refuge_IDseq, refuge_name) # create dataframe to lin
 A9_2<-merge(A9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
 B9_2<-merge(B9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
 C9_2<-merge(C9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
-D9_2<-merge(D9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
+#D9_2<-merge(D9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
 E9_2<-merge(E9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
 F9_2<-merge(F9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
 G9_2<-merge(G9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
@@ -381,18 +305,17 @@ A_sum<-sum(A9_2$retain_chinook)
 E_sum<-sum(E9_2$retain_chinook)
 B_sum<-sum(B9_2$retain_chinook)
 F_sum<-sum(F9_2$retain_chinook)
-D_sum<-sum(D9_2$retain_chinook)
-sum_v<-c(C_sum, G_sum, A_sum, E_sum,B_sum, F_sum, D_sum )
+#D_sum<-sum(D9_2$retain_chinook)
+sum_v<-c(C_sum, G_sum, A_sum, E_sum,B_sum, F_sum )
 
 names_v<-c("Columbia Current,CWR Current",
   "Columbia Current, No CWRs", 
   "Columbia 2040, Current", 
   "Columbia 2040, No CWRs", 
- "Columbia Restored, Current", 
- "Columbia Restored, No CWRs",
-  "Columbia Current, Restored")
+ "Columbia Historic, Current", 
+ "Columbia Historic, No CWRs")
 refuge_use_all<-cbind(names_v, sum_v)
-kable(refuge_use_all, col.names=c("Scenario", "Total CWR Residence (h)"), caption="Table 3. Model output for total hours residing n cold water refuges summarized for Snake River Fall Chinook.")
+kable(refuge_use_all, col.names=c("Scenario", "Total CWR Residence (h)"), caption="Table 3. Model output for total hours residing in cold water refuges summarized for Snake River Fall Chinook.")
 ```
 
 ```{r summarize dying fish}
@@ -400,7 +323,7 @@ kable(refuge_use_all, col.names=c("Scenario", "Total CWR Residence (h)"), captio
 A12<-read.table("D:/Results_4Populations/snake_Columbia2040_current/combined/A3.csv", header=TRUE, sep=",")
 B12<-read.table("D:/Results_4Populations/snake_Columbiarestored_CWRcurrent/combined/B3.csv", header=TRUE, sep=",")
 C12<-read.table("D:/Results_4Populations/snake_current_current/combined/C3.csv", header=TRUE, sep=",")
-D12<-read.table("D:/Results_4Populations/snake_current_restoredCWR/combined/D3.csv", header=TRUE, sep=",")
+#D12<-read.table("D:/Results_4Populations/snake_current_restoredCWR/combined/D3.csv", header=TRUE, sep=",")
 E12<-read.table("D:/Results_4Populations/snake_Columbia2040_No_CWR/combined/E3.csv", header=TRUE, sep=",")
 F12<-read.table("D:/Results_4Populations/snake_Columbiarestored_No_CWR/combined/F3.csv", header=TRUE, sep=",")
 G12<-read.table("D:/Results_4Populations/snake_current_current_No_CWR/combined/G3.csv", header=TRUE, sep=",")
@@ -409,11 +332,11 @@ G12<-read.table("D:/Results_4Populations/snake_current_current_No_CWR/combined/G
 acute_A<-((dim(A12)[1])/ 2000) * 100
 acute_B<-((dim(B12)[1])/ 2000) * 100
 acute_C<-((dim(C12)[1])/ 2000) * 100
-acute_D<-((dim(D12)[1])/ 2000) * 100
+#acute_D<-((dim(D12)[1])/ 2000) * 100
 acute_E<-((dim(E12)[1])/ 2000) * 100
 acute_F<-((dim(F12)[1])/ 2000) * 100
 acute_G<-((dim(G12)[1])/ 2000) * 100
-acute_v<-c(acute_C, acute_G, acute_A, acute_E,acute_B, acute_F, acute_D)
+acute_v<-c(acute_C, acute_G, acute_A, acute_E,acute_B, acute_F)
 acute_all<-cbind(names_v, acute_v)
 kable(acute_all, col.names=c("Scenario", "Total mortality"), caption="Table 4. Model output for percent of individuals dying from acute temperature stress summarized for Snake River Fall Chinook.")
 ```
@@ -424,11 +347,11 @@ all_13_labels<-all_13
 # vector of scenario labels
 all_13_labels$scenario<-as.factor(all_13_labels$scenario)
 levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="A"] <-"Columbia 2040, CWR Current"
-levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="B"] <-"Columbia Restored, CWR Current"
+levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="B"] <-"Columbia Historic, CWR Current"
 levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="C"] <-"Columbia Current, CWR Current"
-levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="D"] <-"Columbia Current, CWR Restored"
+#levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="D"] <-"Columbia Current, CWR Restored"
 levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="E"] <-"Columbia 2040, No CWRs"
-levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="F"] <-"Columbia Restored, No CWRs"
+levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="F"] <-"Columbia Historic, No CWRs"
 levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="G"] <-"Columbia Current, No CWRs"
 
 #v_names<-c("Columbia 2040- CWR Current", "Columbia Restored- CWR Current","Columbia Current- CWR Current", "Columbia #Current- CWR Restored", "Columbia 2040- No CWRs", "Columbia Restored- No CWRs","Columbia Current- No CWRs" )
@@ -454,7 +377,7 @@ p + facet_wrap(~scenario) + labs(x="Exit Day", y="Count", title="Snake River Fal
 ```
 
 
-```{r terminus arrival histogram observed}
+```{r terminus arrival histogram observed, eval=FALSE}
 psg_timing_gr_keefer <- read_csv("D:/HexSim_Models/CWR_Columbia/Calibration/MKeefer_data/psg_timing_gr_keefer.csv", 
 col_types = cols(bodate = col_date(format = "%m/%d/%Y"), 
 grdate = col_date(format = "%m/%d/%Y"), 
