@@ -136,6 +136,9 @@ plot_grid( a1, b1, c1, d1,
 ```
 
 
+
+
+
 ```{r energy lost boxplot, fig.cap="Fig. 2. Boxplot of percent energy lost for modeled Grande Ronde summer steelhead migrating through four different modeled thermalscapes."}
 all_13$scenario<-as.factor(all_13$scenario)
 
@@ -260,7 +263,7 @@ levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="D"] <-"Columbia 
 
 
 #v_names<-c("Columbia 2040- CWR Current", "Columbia Restored- CWR Current","Columbia Current- CWR Current", "Columbia #Current- CWR Restored", "Columbia 2040- No CWRs", "Columbia Restored- No CWRs","Columbia Current- No CWRs" )
-p <- ggplot(data = all_13_labels, aes(x = Time_in_system_d)) + geom_histogram(binwidth = 5)
+p <- ggplot(data = all_13_labels, aes(x = Time_in_system_d, group = scenario)) + geom_histogram(binwidth = 5)
 p + facet_wrap(~scenario) + labs(x="Passage time (d)", y="Count", title="Grande Ronde River Summer Steelhead")
 
 ```
@@ -285,14 +288,61 @@ all_13_labels$entry_jday<-floor(all_13_labels$Time_entry / 24) + jday_start
 all_13_labels$entry_date_ch<-chron(all_13_labels$entry_jday, origin=c(month=1, day=1, year=2019))
 # convert date format to posixct
 all_13_labels$entry_date<- as.POSIXct(all_13_labels$entry_date_ch, "GMT") 
+
+# filter into two different datasets
+sub1<-dplyr::filter(all_13_labels, scenario == "Columbia 2017, CWR Current" | scenario == "Columbia 2017, No CWR" )
+sub2<-dplyr::filter(all_13_labels, scenario == "Columbia 2040 (2017), CWR Current" | scenario == "Columbia 2040 (2017), No CWR" )
+
 ```
 
 ```{r terminus arrival histogram}
 # histograms
-p <- ggplot(data = all_13_labels, aes(x = terminus_date)) + geom_histogram()
-p + facet_wrap(~scenario) + labs(x="Exit Day", y="Count", title="Grande Ronde River Summer Steelhead")
+# 2017 temperature Columbia River
+p <- ggplot(data = sub1, aes(x = terminus_date,  fill=scenario)) + geom_histogram(position="dodge") + theme_classic()
+p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") + 
+  scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9")) + 
+  scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"),labels=c("Columbia 2017", "Columbia 2017 / No CWR"))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14),
+        legend.text = element_text(size=14), legend.position = c(.95, .95),
+  legend.justification = c("right", "top"))
+
+# 2040 temperature Columbia River
+q <- ggplot(data = sub2, aes(x = terminus_date,  fill=scenario)) + geom_histogram(position="dodge") + theme_classic()
+q +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") + 
+  scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9")) + 
+  scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"),labels=c("Columbia 2040", "Columbia 2040 / No CWR"))+
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14),
+        legend.text = element_text(size=14), legend.position = c(.95, .95),
+  legend.justification = c("right", "top"))
 
 ```
+
+```{r terminus arrival density plot}
+# histograms
+# 2017 temperature Columbia River
+p <- ggplot(data = sub1, aes(x = terminus_date, fill=scenario)) + geom_density( alpha=0.5) + theme_classic()
+p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") + 
+  scale_color_manual(values=c("darkorange3", "blue4")) + 
+  scale_fill_manual(values=c( "darkorange3", "blue4"),labels=c("Columbia 2017", "Columbia 2017 / No CWR")) +
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14),
+        legend.text = element_text(size=14), legend.position = c(.95, .95),
+  legend.justification = c("right", "top"))
+
+# 2040 temperature Columbia River
+p <- ggplot(data = sub2, aes(x = terminus_date, fill=scenario)) + geom_density( alpha=0.5) + theme_classic()
+p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") + 
+  scale_color_manual(values=c("darkorange3", "blue4")) + 
+  scale_fill_manual(values=c( "darkorange3", "blue4"),labels=c("Columbia 2040", "Columbia 2040 / No CWR")) +
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14),
+        legend.text = element_text(size=14), legend.position = c(.95, .95),
+  legend.justification = c("right", "top"))
+
+```
+
 
 
 ```{r import hourly, eval=TRUE}
@@ -401,6 +451,170 @@ plot_grid( dur1, dur2, dur3, dur4,
           labels = c("A", "B", "C", "D"),align="v",
           ncol = 1, nrow = 4)
 ```
+
+
+```{r time in system vs time in CWR contour plot}
+data.loess <- loess(ED_per_used ~ Time_in_system_d * Total_hours_cold_water, data = hourly_and_end_A)
+xgrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
+length(xgrid)
+ygrid <-  seq(min(hourly_and_end_A$Total_hours_cold_water), max(hourly_and_end_A$Total_hours_cold_water), 30)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(Time_in_system_d = xgrid, Total_hours_cold_water = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$ED_per_used)
+zlim2<-max(hourly_and_end_A$ED_per_used)
+contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2), labcex = 1.2, xlab = "Time migrating (d)", ylab ="Time in CWR (h)")
+```
+
+
+```{r time in system vs time in CWR contour plot2}
+data.loess <- loess(Total_hours_cold_water ~ Time_in_system_d * ED_per_used, data = hourly_and_end_A)
+xgrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
+length(xgrid)
+ygrid <-  seq(min(hourly_and_end_A$ED_per_used), max(hourly_and_end_A$ED_per_used), 1)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(Time_in_system_d = xgrid, ED_per_used = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$Total_hours_cold_water)
+zlim2<-max(hourly_and_end_A$Total_hours_cold_water)
+contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2), labcex = 1.2, xlab = "Time migrating (d)", ylab ="Energy Used (%)")
+```
+
+
+```{r time in system vs temp contour plot}
+data.loess <- loess(ED_per_used ~ Time_in_system_d * temp_1, data = hourly_and_end_A)
+xgrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
+length(xgrid)
+ygrid <-  seq(min(hourly_and_end_A$temp_1), max(hourly_and_end_A$temp_1), 0.5)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(Time_in_system_d = xgrid, temp_1 = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$ED_per_used)
+zlim2<-max(hourly_and_end_A$ED_per_used)
+contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2),labcex = 1.2, xlab = "Time migrating (d)", ylab ="Mean temperature")
+```
+
+```{r time in system vs temp contour plot2}
+data.loess <- loess( temp_1~ Time_in_system_d * ED_per_used, data = hourly_and_end_A)
+xgrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
+length(xgrid)
+ygrid <-  seq(min(hourly_and_end_A$ED_per_used), max(hourly_and_end_A$ED_per_used), 2)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(Time_in_system_d = xgrid, ED_per_used = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$temp_1)
+zlim2<-max(hourly_and_end_A$temp_1)
+contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2),labcex = 1.2, xlab = "Time migrating (d)", ylab ="Energy used (%)")
+```
+
+```{r mean temp vs CWR hours contour plot}
+data.loess <- loess(ED_per_used ~ Total_hours_cold_water * temp_1, data = hourly_and_end_A)
+xgrid <-  seq(min(hourly_and_end_A$Total_hours_cold_water), max(hourly_and_end_A$Total_hours_cold_water), 2)
+length(xgrid)
+ygrid <-  seq(min(hourly_and_end_A$temp_1), max(hourly_and_end_A$temp_1), 0.5)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(Total_hours_cold_water = xgrid, temp_1 = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$ED_per_used)
+zlim2<-max(hourly_and_end_A$ED_per_used)
+contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2), xlab = "Time in CWR (h)", ylab ="Mean temperature")
+```
+
+```{r time in system vs entry date contour plot}
+data.loess <- loess(ED_per_used ~ Time_in_system_d * entry_jday, data = hourly_and_end_A)
+xgrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
+length(xgrid)
+ygrid <-  seq(min(hourly_and_end_A$entry_jday), max(hourly_and_end_A$entry_jday), 10)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(Time_in_system_d = xgrid, entry_jday = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$ED_per_used)
+zlim2<-max(hourly_and_end_A$ED_per_used)
+contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2),labcex = 1.2, xlab = "Time migrating (d)", ylab ="Entry Jday")
+```
+
+```{r time in system vs entry date contour plot2}
+data.loess <- loess(entry_jday ~ Time_in_system_d * ED_per_used, data = hourly_and_end_A)
+xgrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
+length(xgrid)
+ygrid <-  seq(min(hourly_and_end_A$ED_per_used), max(hourly_and_end_A$ED_per_used), 2)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(Time_in_system_d = xgrid, ED_per_used = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$entry_jday)
+zlim2<-max(hourly_and_end_A$entry_jday)
+contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2),labcex = 1.2, xlab = "Time migrating (d)", ylab ="Energy used (%)")
+```
+
+```{r time in system vs exit date contour plot}
+data.loess <- loess(ED_per_used ~ Time_in_system_d * terminus_jday, data = hourly_and_end_A)
+xgrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
+length(xgrid)
+ygrid <-  seq(min(hourly_and_end_A$terminus_jday), max(hourly_and_end_A$terminus_jday), 10)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(Time_in_system_d = xgrid, terminus_jday = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$ED_per_used)
+zlim2<-max(hourly_and_end_A$ED_per_used)
+contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2),labcex = 1.2, xlab = "Time migrating (d)", ylab ="Exit Jday")
+```
+
+```{r time in system vs exit date contour plot2}
+data.loess <- loess( terminus_jday~ Time_in_system_d * ED_per_used, data = hourly_and_end_A)
+xgrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
+length(xgrid)
+ygrid <-  seq(min(hourly_and_end_A$ED_per_used), max(hourly_and_end_A$ED_per_used), 2)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(Time_in_system_d = xgrid, ED_per_used = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$terminus_jday)
+zlim2<-max(hourly_and_end_A$terminus_jday)
+contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2),labcex = 1.2, xlab = "Time migrating (d)", ylab ="Energy Used (%)")
+```
+
+```{r entry date vs exit date contour plot}
+data.loess <- loess(ED_per_used ~ entry_jday * terminus_jday, data = hourly_and_end_A)
+xgrid <-  seq(min(hourly_and_end_A$entry_jday), max(hourly_and_end_A$entry_jday), 10)
+length(xgrid)
+ygrid <-  seq(min(hourly_and_end_A$terminus_jday), max(hourly_and_end_A$terminus_jday), 10)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid(entry_jday = xgrid, terminus_jday = ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$ED_per_used)
+zlim2<-max(hourly_and_end_A$ED_per_used)
+contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2), xlab = "Entry Jday", ylab ="Exit Jday")
+```
+
 
 ```{r add refuge or mainstem identifier to hourly for plot}
 E14$location<-"Columbia"

@@ -513,6 +513,7 @@ plot_grid( dur1, dur2, dur3, dur4,
           ncol = 1, nrow = 4)
 ```
 
+
 ```{r add refuge or mainstem identifier to hourly for plot}
 E14$location<-"Columbia"
 E14$location[E14$refuge_id > 5]<-"Refuge"
