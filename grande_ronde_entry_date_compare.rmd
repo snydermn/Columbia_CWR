@@ -1,0 +1,82 @@
+---
+title: "entry time comparison grande ronde"
+author: "MNSnyder"
+date: "11/7/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Compares modeled Grande Ronde summer steelhead fish entry times at Bonneville dam to Keefer pit tag data.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(readr)
+library(ggplot2)
+library(lubridate)
+```
+
+```{r import data}
+# import end condition data probe from hexsim output
+modeled<-read_csv("D:/Results_4Populations/gr_Columbia2017A/combined/E13.csv")
+# rename columns
+names(modeled)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", 
+                  "Time_in_cwr_total_h", "Initial_weight", "Initial_ED", "Fitness_weight", "Fitness_ED", "Fitness_energy")
+
+```
+
+```{r add date column to hourly data}
+# convert Step to julian day
+jday_start<-182
+modeled$step_jday<-floor(modeled$Step / 24) + jday_start
+# convert julian day to date
+#modeled$step_date_ch<-chron(modeled$step_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+#modeled$step_date<- as.POSIXct(modeled$step_date_ch, "GMT") 
+
+```
+
+```{r model entry time histogram}
+g <- ggplot(data = modeled, aes(x = step_jday)) + geom_histogram(bins=120)  + labs(x="Observed Bonneville Passage (Julian day)", title="Grande Ronde River Summer Steelhead -model data") +
+  xlim(180,300) +
+  theme_classic()
+g 
+```
+
+```{r}
+g <- ggplot(data = modeled, aes(x = Time_entry)) + geom_histogram(bins=2000)  + labs(x="Observed Bonneville Passage (model hour)", title="Grande Ronde River Summer Steelhead -model data") +
+  theme_classic()
+g 
+```
+
+
+```{r read in keefer pittag data}
+gr_keefer <- read_csv("D:/HexSim_Models/CWR_Columbia/Calibration/MKeefer_data/psg_timing_gr_keefer.csv", 
+col_types = cols(bodate = col_date(format = "%m/%d/%Y"), 
+grdate = col_date(format = "%m/%d/%Y"), 
+ihdate = col_date(format = "%m/%d/%Y"), 
+mndate = col_date(format = "%m/%d/%Y")))
+# rename columns
+names(gr_keefer)<-c("Year", "bodate", "BO_jul", "mndate", "ihdate", "ih_jul", "grdate", "bo_mn_d", "bo_ih_d", "ih_gr_d")
+
+
+```
+
+
+```{r pittag entry time histograms}
+
+f <- ggplot(data = gr_keefer, aes(x = BO_jul)) + geom_histogram(bins=90)  + labs(x="Observed Bonneville Passage (Julian day)", title="Grande Ronde River Summer Steelhead -Pit tag data") +
+  xlim(180,300) +
+  theme_classic()
+f + facet_grid(Year ~ ., scales="free_y")
+
+
+```
+
+
+
+
+
+
+
+

@@ -1,0 +1,587 @@
+---
+title: "Grande Ronde and Snake DD CDF plots"
+author: "MNSnyder"
+date: "11/19/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+Columbia River temperature time series from 2017. 
+4 scenarios included:
+
+* Columbia River 2017
+* Columbia River 2017, no CWRs
+* Columbia River 2017 plus 1
+* Columbia River 2017 plus 1, no CWRs
+
+Columbia 2017B assigns the John Day Pool temperature from the John Day forebay, which is the warmer part of the pool.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(egg)
+```
+
+
+```{r plot formatting}
+width1 = 4.5
+height1 = 3.5
+text1 = 8
+
+My_Theme_CDF = theme(
+  axis.title.x = element_text(size = 16),
+  axis.text.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),   
+  axis.text.y = element_text(size = 16),
+  plot.margin = margin(6, 0, 6, 0)
+)
+```
+
+
+```{r import hourly gr summer steelhead}
+# import in combined replicate DFs
+A14<-fread("D:/Results_4Populations/gr_Columbia2017B/combined/E14.csv", header=TRUE, sep=",")
+B14<-fread("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F14.csv", header=TRUE, sep=",")
+C14<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G14.csv", header=TRUE, sep=",")
+D14<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H14.csv", header=TRUE, sep=",")
+
+# rename columns
+names(A14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(B14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(C14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(D14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+
+```
+
+
+```{r dd calculate function}
+# function to calculate cumulative degree days above a certain degree
+dum_dd<-function(threshold, DF){
+  DF_subset<-DF[which(DF$temp_1 >= threshold),]
+  dd_threshold<-aggregate(temp_1~ID, data=DF_subset, sum)
+  dd_threshold$temp_1<-dd_threshold$temp_1/24
+  return(dd_threshold)
+}
+
+```
+
+
+```{r function to calculate reverse CDF}
+# function to get reverse of eCDF
+rcdf <- function (x) {
+     cdf <- ecdf(x)
+     y <- cdf(x)
+    xrcdf <- 1-y
+}
+```
+
+###################################################################
+## GR Degree Days > 20°C
+
+```{r calc DD GT 20 for each scenario}
+
+# set threshold
+thres<-20
+# run for each scenario's hourly DF
+A14_ddGT18<-dum_dd(thres, A14)
+B14_ddGT18<-dum_dd(thres, B14)
+C14_ddGT18<-dum_dd(thres, C14)
+D14_ddGT18<-dum_dd(thres, D14)
+
+# add scenario column
+A14_ddGT18$scenario<-"A"
+B14_ddGT18$scenario<-"B"
+C14_ddGT18$scenario<-"C"
+D14_ddGT18$scenario<-"D"
+
+#combine
+all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
+
+```
+
+
+```{r GR reverse CDF 20}
+#ggplot(all_14_ddGT18, aes(temp_1, colour = scenario)) + stat_ecdf()
+
+a<-dplyr::filter(all_14_ddGT18, scenario=="A")
+b<-dplyr::filter(all_14_ddGT18, scenario=="B")
+c<-dplyr::filter(all_14_ddGT18, scenario=="C")
+d<-dplyr::filter(all_14_ddGT18, scenario=="D")
+
+# reverse ecdf for A
+atest2<-rcdf(a$temp_1)
+atest3<-cbind(atest2, a)
+names(atest3)[1]<-'Percent'
+# reverse ecdf for B
+btest2<-rcdf(b$temp_1)
+btest3<-cbind(btest2, b)
+names(btest3)[1]<-'Percent'
+# reverse ecdf for C
+ctest2<-rcdf(c$temp_1)
+ctest3<-cbind(ctest2, c)
+names(ctest3)[1]<-'Percent'
+# reverse ecdf for D
+dtest2<-rcdf(d$temp_1)
+dtest3<-cbind(dtest2, d)
+names(dtest3)[1]<-'Percent'
+
+rev_cdf_all<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
+
+gr_20<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>20°C)", y="Proportion")+ xlim(0,1000)+
+    scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs")) + 
+  My_Theme_CDF
+
+```
+
+###################################################################
+## GR Degree Days > 21°C
+
+```{r calc DD GT 21 for each scenario}
+
+# set threshold
+thres<-21
+# run for each scenario's hourly DF
+A14_ddGT18<-dum_dd(thres, A14)
+B14_ddGT18<-dum_dd(thres, B14)
+C14_ddGT18<-dum_dd(thres, C14)
+D14_ddGT18<-dum_dd(thres, D14)
+
+# add scenario column
+A14_ddGT18$scenario<-"A"
+B14_ddGT18$scenario<-"B"
+C14_ddGT18$scenario<-"C"
+D14_ddGT18$scenario<-"D"
+
+#combine
+all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
+
+```
+
+```{r reverse CDF 21}
+#ggplot(all_14_ddGT18, aes(temp_1, colour = scenario)) + stat_ecdf()
+
+a<-dplyr::filter(all_14_ddGT18, scenario=="A")
+b<-dplyr::filter(all_14_ddGT18, scenario=="B")
+c<-dplyr::filter(all_14_ddGT18, scenario=="C")
+d<-dplyr::filter(all_14_ddGT18, scenario=="D")
+
+# reverse ecdf for A
+atest2<-rcdf(a$temp_1)
+atest3<-cbind(atest2, a)
+names(atest3)[1]<-'Percent'
+# reverse ecdf for B
+btest2<-rcdf(b$temp_1)
+btest3<-cbind(btest2, b)
+names(btest3)[1]<-'Percent'
+# reverse ecdf for C
+ctest2<-rcdf(c$temp_1)
+ctest3<-cbind(ctest2, c)
+names(ctest3)[1]<-'Percent'
+# reverse ecdf for D
+dtest2<-rcdf(d$temp_1)
+dtest3<-cbind(dtest2, d)
+names(dtest3)[1]<-'Percent'
+
+rev_cdf_all<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
+
+gr_21<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>21°C)", y="Proportion")+ xlim(0,1000)+
+    scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  My_Theme_CDF
+
+```
+
+###################################################################
+## GR Degree Days > 22°C
+
+```{r calc DD GT 22 for each scenario}
+
+# set threshold
+thres<-22
+# run for each scenario's hourly DF
+A14_ddGT18<-dum_dd(thres, A14)
+B14_ddGT18<-dum_dd(thres, B14)
+C14_ddGT18<-dum_dd(thres, C14)
+D14_ddGT18<-dum_dd(thres, D14)
+
+# add scenario column
+A14_ddGT18$scenario<-"A"
+B14_ddGT18$scenario<-"B"
+C14_ddGT18$scenario<-"C"
+D14_ddGT18$scenario<-"D"
+
+#combine
+all_14_ddGT18<-rbind.data.frame(A14_ddGT18, B14_ddGT18, C14_ddGT18, D14_ddGT18)
+
+```
+
+```{r experiment with reverse CDF}
+#ggplot(all_14_ddGT18, aes(temp_1, colour = scenario)) + stat_ecdf()
+
+a<-dplyr::filter(all_14_ddGT18, scenario=="A")
+b<-dplyr::filter(all_14_ddGT18, scenario=="B")
+c<-dplyr::filter(all_14_ddGT18, scenario=="C")
+d<-dplyr::filter(all_14_ddGT18, scenario=="D")
+
+
+# reverse ecdf for A
+atest2<-rcdf(a$temp_1)
+atest3<-cbind(atest2, a)
+names(atest3)[1]<-'Percent'
+# reverse ecdf for B
+btest2<-rcdf(b$temp_1)
+btest3<-cbind(btest2, b)
+names(btest3)[1]<-'Percent'
+# reverse ecdf for C
+ctest2<-rcdf(c$temp_1)
+ctest3<-cbind(ctest2, c)
+names(ctest3)[1]<-'Percent'
+# reverse ecdf for D
+dtest2<-rcdf(d$temp_1)
+dtest3<-cbind(dtest2, d)
+names(dtest3)[1]<-'Percent'
+
+rev_cdf_all<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
+
+gr_22<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>22°C)", y="Proportion")+ xlim(0,1000)+
+    scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+  My_Theme_CDF
+
+```
+
+
+
+##################################################################
+Snake River Fall Chinook-------------------------------------------
+________________________________________________________________________
+
+```{r import hourly sr fall chnk}
+# import in combined replicate DFs
+E14<-fread("D:/Results_4Populations/snake_Columbia2017B/combined/E5.csv", header=TRUE, sep=",")
+F14<-fread("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F5.csv", header=TRUE, sep=",")
+G14<-fread("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G5.csv", header=TRUE, sep=",")
+H14<-fread("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H5.csv", header=TRUE, sep=",")
+
+# rename columns
+names(E14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(F14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(G14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(H14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+
+```
+
+###################################################################
+## SR Degree Days > 20°C
+
+```{r SR calc DD GT 20 for each scenario}
+
+# set threshold
+thres<-20
+# run for each scenario's hourly DF
+E14_ddGT18<-dum_dd(thres, E14)
+F14_ddGT18<-dum_dd(thres, F14)
+G14_ddGT18<-dum_dd(thres, G14)
+H14_ddGT18<-dum_dd(thres, H14)
+
+# add scenario column
+E14_ddGT18$scenario<-"A"
+F14_ddGT18$scenario<-"B"
+G14_ddGT18$scenario<-"C"
+H14_ddGT18$scenario<-"D"
+
+#combine
+sr_ddGT20<-rbind.data.frame(E14_ddGT18, F14_ddGT18, G14_ddGT18, H14_ddGT18)
+
+```
+
+
+```{r SR reverse CDF 20}
+#ggplot(all_14_ddGT18, aes(temp_1, colour = scenario)) + stat_ecdf()
+
+a<-dplyr::filter(sr_ddGT20, scenario=="A")
+b<-dplyr::filter(sr_ddGT20, scenario=="B")
+c<-dplyr::filter(sr_ddGT20, scenario=="C")
+d<-dplyr::filter(sr_ddGT20, scenario=="D")
+
+# reverse ecdf for A
+atest2<-rcdf(a$temp_1)
+atest3<-cbind(atest2, a)
+names(atest3)[1]<-'Percent'
+# reverse ecdf for B
+btest2<-rcdf(b$temp_1)
+btest3<-cbind(btest2, b)
+names(btest3)[1]<-'Percent'
+# reverse ecdf for C
+ctest2<-rcdf(c$temp_1)
+ctest3<-cbind(ctest2, c)
+names(ctest3)[1]<-'Percent'
+# reverse ecdf for D
+dtest2<-rcdf(d$temp_1)
+dtest3<-cbind(dtest2, d)
+names(dtest3)[1]<-'Percent'
+
+rev_cdf_all20<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
+
+sr_20<-ggplot(rev_cdf_all20, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>20°C)", y="Proportion")+ xlim(0,500)+
+    scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs")) + 
+  My_Theme_CDF
+
+```
+
+###################################################################
+## SR Degree Days > 21°C
+
+```{r SR calc DD GT 21 for each scenario}
+
+# set threshold
+thres<-21
+# run for each scenario's hourly DF
+E14_ddGT18<-dum_dd(thres, E14)
+F14_ddGT18<-dum_dd(thres, F14)
+G14_ddGT18<-dum_dd(thres, G14)
+H14_ddGT18<-dum_dd(thres, H14)
+
+# add scenario column
+E14_ddGT18$scenario<-"A"
+F14_ddGT18$scenario<-"B"
+G14_ddGT18$scenario<-"C"
+H14_ddGT18$scenario<-"D"
+
+#combine
+sr_ddGT21<-rbind.data.frame(E14_ddGT18, F14_ddGT18, G14_ddGT18, H14_ddGT18)
+
+```
+
+
+```{r SR reverse CDF 21}
+#ggplot(all_14_ddGT18, aes(temp_1, colour = scenario)) + stat_ecdf()
+
+a<-dplyr::filter(sr_ddGT21, scenario=="A")
+b<-dplyr::filter(sr_ddGT21, scenario=="B")
+c<-dplyr::filter(sr_ddGT21, scenario=="C")
+d<-dplyr::filter(sr_ddGT21, scenario=="D")
+
+# reverse ecdf for A
+atest2<-rcdf(a$temp_1)
+atest3<-cbind(atest2, a)
+names(atest3)[1]<-'Percent'
+# reverse ecdf for B
+btest2<-rcdf(b$temp_1)
+btest3<-cbind(btest2, b)
+names(btest3)[1]<-'Percent'
+# reverse ecdf for C
+ctest2<-rcdf(c$temp_1)
+ctest3<-cbind(ctest2, c)
+names(ctest3)[1]<-'Percent'
+# reverse ecdf for D
+dtest2<-rcdf(d$temp_1)
+dtest3<-cbind(dtest2, d)
+names(dtest3)[1]<-'Percent'
+
+rev_cdf_all21<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
+
+sr_21<-ggplot(rev_cdf_all21, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>21°C)", y="Proportion")+ xlim(0,500)+
+    scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs")) + 
+  My_Theme_CDF
+
+```
+
+###################################################################
+## SR Degree Days > 22°C
+
+```{r SR calc DD GT 22 for each scenario}
+
+# set threshold
+thres<-22
+# run for each scenario's hourly DF
+E14_ddGT18<-dum_dd(thres, E14)
+F14_ddGT18<-dum_dd(thres, F14)
+G14_ddGT18<-dum_dd(thres, G14)
+H14_ddGT18<-dum_dd(thres, H14)
+
+# add scenario column
+E14_ddGT18$scenario<-"A"
+F14_ddGT18$scenario<-"B"
+G14_ddGT18$scenario<-"C"
+H14_ddGT18$scenario<-"D"
+
+#combine
+sr_ddGT22<-rbind.data.frame(E14_ddGT18, F14_ddGT18, G14_ddGT18, H14_ddGT18)
+
+```
+
+
+```{r SR reverse CDF 22}
+#ggplot(all_14_ddGT18, aes(temp_1, colour = scenario)) + stat_ecdf()
+
+a<-dplyr::filter(sr_ddGT22, scenario=="A")
+b<-dplyr::filter(sr_ddGT22, scenario=="B")
+c<-dplyr::filter(sr_ddGT22, scenario=="C")
+d<-dplyr::filter(sr_ddGT22, scenario=="D")
+
+# reverse ecdf for A
+atest2<-rcdf(a$temp_1)
+atest3<-cbind(atest2, a)
+names(atest3)[1]<-'Percent'
+# reverse ecdf for B
+btest2<-rcdf(b$temp_1)
+btest3<-cbind(btest2, b)
+names(btest3)[1]<-'Percent'
+# reverse ecdf for C
+ctest2<-rcdf(c$temp_1)
+ctest3<-cbind(ctest2, c)
+names(ctest3)[1]<-'Percent'
+# reverse ecdf for D
+dtest2<-rcdf(d$temp_1)
+dtest3<-cbind(dtest2, d)
+names(dtest3)[1]<-'Percent'
+
+rev_cdf_all22<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
+
+sr_22<-ggplot(rev_cdf_all22, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>22°C)", y="Proportion")+ xlim(0,500)+
+    scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs")) + 
+  My_Theme_CDF
+
+```
+
+```{r plot reverse CDF together, fig.cap="Fig. X. Percent of population at any cumulative degree threshold that has greater cumulative exposure thant than the threshold."}
+
+pg1<- plot_grid(
+  gr_20 + theme(legend.position="none"),
+  gr_21+ theme(legend.position="none"),
+  gr_22 + theme(legend.position="none"),
+  labels = c("A", "B", "C"),
+  nrow = 3
+)
+
+# extract a legend that is laid out horizontally
+legend_b <- get_legend(
+  gr_20 + guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom")
+)
+
+# add the legend underneath the row we made earlier. Give it 10%
+# of the height of one plot (via rel_heights).
+plot_grid(pg1, legend_b, nrow = 2, rel_heights = c(1, .1))
+#plot_grid(gr_20, gr_21, gr_22,
+#          labels = c("A", "B", "C"),
+#          ncol = 1, nrow = 3)
+```
+
+```{r plot reverse CDF together2, fig.cap="Fig. X. Percent of population at any cumulative degree threshold that has greater cumulative exposure thant than the threshold."}
+
+g1<- plot_grid(
+  sr_20 + theme(legend.position="none"),
+  sr_21+ theme(legend.position="none"),
+  sr_22 + theme(legend.position="none"),
+  labels = c("A", "B", "C"),
+  nrow = 3
+)
+
+# extract a legend that is laid out horizontally
+legend_b2 <- get_legend(
+  sr_20 + guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom")
+)
+
+# add the legend underneath the row we made earlier. Give it 10%
+# of the height of one plot (via rel_heights).
+plot_grid(g1, legend_b2, nrow = 2, rel_heights = c(1, .1))
+#plot_grid(gr_20, gr_21, gr_22,
+#          labels = c("A", "B", "C"),
+#          ncol = 1, nrow = 3)
+```
+
+```{r plot reverse CDF together3, fig.width=8, fig.height=9, fig.cap="Fig. X. Percent of population at any cumulative degree threshold that has greater cumulative exposure thant than the threshold."}
+
+g3<- plot_grid(
+  gr_20 + theme(legend.position="none"),
+  sr_20 + theme(legend.position="none"),
+  gr_21+ theme(legend.position="none"),
+  sr_21+ theme(legend.position="none"),
+  gr_22 + theme(legend.position="none"),
+  sr_22 + theme(legend.position="none"),
+  labels = c("A", "B", "C", "D","E","F"),
+  nrow = 3
+)
+
+# extract a legend that is laid out horizontally
+legend_b2 <- get_legend(
+  sr_20 + guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom")
+)
+
+# add the legend underneath the row we made earlier. Give it 10%
+# of the height of one plot (via rel_heights).
+plot_grid(g3, legend_b2, nrow = 2, rel_heights = c(1, .1))
+#plot_grid(gr_20, gr_21, gr_22,
+#          labels = c("A", "B", "C"),
+#          ncol = 1, nrow = 3)
+```
+
+NOTFINISHED
+, common.legend=TRUE,
+```{r combined reverse CDF plot with egg package for shared axis}
+figure1<-ggarrange(gr_20 + theme(legend.position="none") +
+               theme( plot.margin = margin(r = 1)), 
+          sr_20 + theme(legend.position="none") + 
+               theme(axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank(),
+                     axis.title.y = element_blank()),
+          gr_21 + theme(legend.position="none") +
+               theme( plot.margin = margin(r = 1)), 
+          sr_21 + theme(legend.position="none") + 
+               theme(axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank(),
+                     axis.title.y = element_blank(),
+                     plot.margin = margin(r = 1, l = 1) ),
+          gr_22 + theme(legend.position="none") +
+               theme( plot.margin = margin(r = 1)), 
+          sr_22 + theme(legend.position="none") + 
+               theme(axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank(),
+                     axis.title.y = element_blank(),
+                     plot.margin = margin(r = 1, l = 1) ),
+          nrow = 3) 
+#annotate_figure(figure1,left = text_grob("Proportion",rot = 90) )
+
+```
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,126 @@
+---
+title: "combined DD figure"
+author: "MNSnyder"
+date: "11/18/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(cowplot)
+library(tidyverse)
+```
+
+
+```{r import in values}
+## 22 DD ##
+
+# grande ronde summer steelhead
+gr1<-c(25,57,58,87)
+thres1<-c(22,22,22,22)
+scen1<-c("A", "B", "C", "D")
+pop1<-c("Grande Ronde summer steelhead", "Grande Ronde summer steelhead", "Grande Ronde summer steelhead", "Grande Ronde summer steelhead")
+out1<-cbind.data.frame(gr1, thres1, scen1, pop1)
+names(out1)<-c("Percent", "DD_threshold", "Scenario", "Population")
+# snake river fall chinook
+sr1<-c(25, 29, 89, 93)
+pop2<-c("Snake River fall Chinook salmon", "Snake River fall Chinook salmon", "Snake River fall Chinook salmon", "Snake River fall Chinook salmon")
+out2<-cbind.data.frame(sr1, thres1, scen1, pop2)
+names(out2)<-c("Percent", "DD_threshold", "Scenario", "Population")
+
+## 21 DD ##
+
+# grande ronde summer steelhead
+gr2<-c(21, 48, 34, 58)
+thres2<-c(21,21,21,21)
+out3<-cbind.data.frame(gr2, thres2, scen1, pop1)
+names(out3)<-c("Percent", "DD_threshold", "Scenario", "Population")
+
+# snake river fall chinook
+sr2<-c(25, 28, 39, 42)
+out4<-cbind.data.frame(sr2, thres2, scen1, pop2)
+names(out4)<-c("Percent", "DD_threshold", "Scenario", "Population")
+
+## 20 DD ##
+
+# grande ronde summer steelhead
+gr3<-c(25, 41, 32, 46)
+thres3<-c(20,20,20,20)
+out5<-cbind.data.frame(gr3, thres3, scen1, pop1)
+names(out5)<-c("Percent", "DD_threshold", "Scenario", "Population")
+
+# snake river fall chinook
+sr3<-c(25, 27, 34, 37)
+out6<-cbind.data.frame(sr3, thres3, scen1, pop2)
+names(out6)<-c("Percent", "DD_threshold", "Scenario", "Population")
+
+# combine all
+combined_75_dd_per<-rbind.data.frame(out1, out2, out3, out4, out5, out6)
+```
+
+
+```{r create barplot grande ronde sthd, fig.width=9, fig.height=5, fig.cap="Fig. X. Percent of individuals" }
+# filter to steelhead
+combined_75_dd_per_gr<-dplyr::filter(combined_75_dd_per, Population == "Grande Ronde summer steelhead")
+# plot for GR steelhead
+p<-ggplot(combined_75_dd_per_gr, aes(fill=as.factor(DD_threshold), y=Percent, x=Scenario)) + 
+  geom_bar(position="dodge", stat="identity") +  theme_classic(base_size = 14) +
+   xlab("") + 
+  scale_fill_manual(values=c("aquamarine2", "cyan4", "darkblue"), name = "Cumulative exposure \n threshold", labels = c("> 20°C", "> 21°C", "> 22°C")) + theme(axis.text.x=element_blank())
+p
+
+```
+
+```{r create barplot snake river chnk, fig.width=9, fig.height=5, fig.cap="Fig. X. Percent of individuals" }
+# filter to steelhead
+combined_75_dd_per_sr<-dplyr::filter(combined_75_dd_per, Population == "Snake River fall Chinook salmon")
+# plot for GR steelhead
+p2<-ggplot(combined_75_dd_per_sr, aes(fill=as.factor(DD_threshold), y=Percent, x=Scenario)) + 
+  geom_bar(position="dodge", stat="identity") +  theme_classic(base_size = 14) +
+   xlab("") +
+  scale_fill_manual(values=c("aquamarine2", "cyan4", "darkblue"), name = "Cumulative exposure \n threshold", labels = c("> 20°C", "> 21°C", "> 22°C"))+
+  scale_x_discrete(labels=c("A" = "Current temperature \n with CWRs", "B" = "Current temperature \n without CWRs",
+                              "C" = "Future temperature \n with CWRs", "D" = "Future temperature \n without CWRs"))
+p2
+
+```
+
+```{r plot energy hist together, fig.cap="Fig. X. ."}
+plot_grid( p, p2,  
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2)
+```
+
+
+```{r facet plot, fig.width=8.5, fig.height=5.75, fig.cap="Fig. X. Percent of individuals with added daily thermal exposure greater than the 75% quantile at each exposure threshold." }
+p3<-ggplot(combined_75_dd_per, aes(fill=as.factor(DD_threshold), y=Percent, x=Scenario)) + 
+  geom_bar(position="dodge", stat="identity") +  theme_classic(base_size = 14) +
+   xlab("") +
+  scale_fill_manual(values=c("aquamarine2", "cyan4", "darkblue"), name = "Cumulative\n exposure \n threshold", labels = c("> 20°C", "> 21°C", "> 22°C"))+
+  scale_x_discrete(labels=c("A" = "Current temperature \n with CWRs", "B" = "Current temperature \n without CWRs",
+                              "C" = "Future temperature \n with CWRs", "D" = "Future temperature \n without CWRs")) + facet_grid(Population ~ .) + theme(strip.text.y = element_text(size=10, face="bold"))
+p3
+```
+
+
+```{r}
+p4<-ggplot(combined_75_dd_per, aes(fill=as.factor(DD_threshold), y=Percent, x=Scenario)) + 
+  geom_point() +  theme_classic(base_size = 14) +
+   xlab("") +
+  scale_fill_manual(values=c("aquamarine2", "cyan4", "darkblue"), name = "Cumulative\n exposure \n threshold", labels = c("> 20°C", "> 21°C", "> 22°C"))+
+  scale_x_discrete(labels=c("A" = "Current temperature \n with CWRs", "B" = "Current temperature \n without CWRs",
+                              "C" = "Future temperature \n with CWRs", "D" = "Future temperature \n without CWRs")) + facet_grid(Population ~ .) + theme(strip.text.y = element_text(size=10, face="bold"))
+p4
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+

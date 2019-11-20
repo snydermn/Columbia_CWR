@@ -32,6 +32,14 @@ library(chron)
 width1 = 4.5
 height1 = 3.5
 text1 = 8
+
+My_Theme_CDF = theme(
+  axis.title.x = element_text(size = 16),
+  axis.text.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),   
+  axis.text.y = element_text(size = 16),
+  plot.margin = margin(6, 0, 6, 0)
+)
 ```
 
 ```{r import hourly}
@@ -221,6 +229,70 @@ DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2040 (2017), 
 kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>20°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
 ```
 
+```{r prepare for DD table based on threshold 20}
+# set threshold based on 75% quantile
+thres<-362
+
+a<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="A"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="A"))[1]
+b<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="B"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="B"))[1]
+c<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="C"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="C"))[1]
+d<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="D"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="D"))[1]
+
+out<-cbind(a*100,b*100,c*100,d*100)
+# create table with pretty format
+kable(out, col.names=c( "Columbia 2017, CWR Current", "Columbia 2017, No CWR", "Columbia 2040 (2017), CWR Current","Columbia 2040 (2017), No CWR"),row.names=FALSE, caption="Table 1. Percent of population with cumulative degree days (>20°C) above 135 across different HexSim thermalscapes summarized for Grande Ronde River summer steelhead.", digits=0)
+
+```
+
+```{r experiment with reverse CDF 20}
+#ggplot(all_14_ddGT18, aes(temp_1, colour = scenario)) + stat_ecdf()
+
+a<-dplyr::filter(all_14_ddGT18, scenario=="A")
+b<-dplyr::filter(all_14_ddGT18, scenario=="B")
+c<-dplyr::filter(all_14_ddGT18, scenario=="C")
+d<-dplyr::filter(all_14_ddGT18, scenario=="D")
+
+# function to get reverse of eCDF
+rcdf <- function (x) {
+     cdf <- ecdf(x)
+     y <- cdf(x)
+    xrcdf <- 1-y
+}
+
+# reverse ecdf for A
+atest2<-rcdf(a$temp_1)
+atest3<-cbind(atest2, a)
+names(atest3)[1]<-'Percent'
+# reverse ecdf for B
+btest2<-rcdf(b$temp_1)
+btest3<-cbind(btest2, b)
+names(btest3)[1]<-'Percent'
+# reverse ecdf for C
+ctest2<-rcdf(c$temp_1)
+ctest3<-cbind(ctest2, c)
+names(ctest3)[1]<-'Percent'
+# reverse ecdf for D
+dtest2<-rcdf(d$temp_1)
+dtest3<-cbind(dtest2, d)
+names(dtest3)[1]<-'Percent'
+
+rev_cdf_all<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
+
+# shows proportin of population that has greater than that DD accumulation
+plot(atest2~temp_1, data=atest3, col="blue")
+points(btest2~temp_1, data=btest3, col="red")
+
+
+gr_20<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>20°C)")+ xlim(0,1000)+
+    scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs")) + 
+  My_Theme_CDF
+
+```
+
 ###################################################################
 ## Degree Days > 21°C
 
@@ -306,6 +378,72 @@ DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2040 (2017), 
 
 # create table with pretty format
 kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Cumulative degree days (>21°C) used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
+```
+
+
+
+```{r prepare for DD table based on threshold 21}
+# set threshold based on 75% quantile
+thres<-341
+
+a<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="A"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="A"))[1]
+b<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="B"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="B"))[1]
+c<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="C"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="C"))[1]
+d<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="D"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="D"))[1]
+
+out<-cbind(a*100,b*100,c*100,d*100)
+# create table with pretty format
+kable(out, col.names=c( "Columbia 2017, CWR Current", "Columbia 2017, No CWR", "Columbia 2040 (2017), CWR Current","Columbia 2040 (2017), No CWR"),row.names=FALSE, caption="Table 1. Percent of population with cumulative degree days (>21°C) above 135 across different HexSim thermalscapes summarized for Grande Ronde River summer steelhead.", digits=0)
+
+```
+
+```{r reverse CDF 21}
+#ggplot(all_14_ddGT18, aes(temp_1, colour = scenario)) + stat_ecdf()
+
+a<-dplyr::filter(all_14_ddGT18, scenario=="A")
+b<-dplyr::filter(all_14_ddGT18, scenario=="B")
+c<-dplyr::filter(all_14_ddGT18, scenario=="C")
+d<-dplyr::filter(all_14_ddGT18, scenario=="D")
+
+# function to get reverse of eCDF
+rcdf <- function (x) {
+     cdf <- ecdf(x)
+     y <- cdf(x)
+    xrcdf <- 1-y
+}
+
+# reverse ecdf for A
+atest2<-rcdf(a$temp_1)
+atest3<-cbind(atest2, a)
+names(atest3)[1]<-'Percent'
+# reverse ecdf for B
+btest2<-rcdf(b$temp_1)
+btest3<-cbind(btest2, b)
+names(btest3)[1]<-'Percent'
+# reverse ecdf for C
+ctest2<-rcdf(c$temp_1)
+ctest3<-cbind(ctest2, c)
+names(ctest3)[1]<-'Percent'
+# reverse ecdf for D
+dtest2<-rcdf(d$temp_1)
+dtest3<-cbind(dtest2, d)
+names(dtest3)[1]<-'Percent'
+
+rev_cdf_all<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
+
+# shows proportin of population that has greater than that DD accumulation
+plot(atest2~temp_1, data=atest3, col="blue")
+points(btest2~temp_1, data=btest3, col="red")
+
+
+gr_21<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>21°C)")+ xlim(0,1000)+
+    scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  My_Theme_CDF
+
 ```
 
 
@@ -397,7 +535,7 @@ kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median"
 ```
 
 
-```{r prepare for DD table based on threshold}
+```{r prepare for DD table based on threshold 22}
 # set threshold based on 75% quantile
 thres<-252
 
@@ -410,6 +548,80 @@ out<-cbind(a*100,b*100,c*100,d*100)
 # create table with pretty format
 kable(out, col.names=c( "Columbia 2017, CWR Current", "Columbia 2017, No CWR", "Columbia 2040 (2017), CWR Current","Columbia 2040 (2017), No CWR"),row.names=FALSE, caption="Table 1. Percent of population with cumulative degree days (>22°C) above 135 across different HexSim thermalscapes summarized for Grande Ronde River summer steelhead.", digits=0)
 
+```
+
+
+```{r experiment with reverse CDF}
+#ggplot(all_14_ddGT18, aes(temp_1, colour = scenario)) + stat_ecdf()
+
+a<-dplyr::filter(all_14_ddGT18, scenario=="A")
+b<-dplyr::filter(all_14_ddGT18, scenario=="B")
+c<-dplyr::filter(all_14_ddGT18, scenario=="C")
+d<-dplyr::filter(all_14_ddGT18, scenario=="D")
+
+# function to get reverse of eCDF
+rcdf <- function (x) {
+     cdf <- ecdf(x)
+     y <- cdf(x)
+    xrcdf <- 1-y
+}
+
+# reverse ecdf for A
+atest2<-rcdf(a$temp_1)
+atest3<-cbind(atest2, a)
+names(atest3)[1]<-'Percent'
+# reverse ecdf for B
+btest2<-rcdf(b$temp_1)
+btest3<-cbind(btest2, b)
+names(btest3)[1]<-'Percent'
+# reverse ecdf for C
+ctest2<-rcdf(c$temp_1)
+ctest3<-cbind(ctest2, c)
+names(ctest3)[1]<-'Percent'
+# reverse ecdf for D
+dtest2<-rcdf(d$temp_1)
+dtest3<-cbind(dtest2, d)
+names(dtest3)[1]<-'Percent'
+
+rev_cdf_all<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
+
+# shows proportin of population that has greater than that DD accumulation
+plot(atest2~temp_1, data=atest3, col="blue")
+points(btest2~temp_1, data=btest3, col="red")
+
+
+gr_22<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>22°C)")+ xlim(0,1000)+
+    scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+  My_Theme_CDF
+
+```
+
+
+```{r plot reverse CDF together, fig.cap="Fig. X. Percent of population at any cumulative degree threshold that has greater cumulative exposure thant than the threshold."}
+
+pg1<- plot_grid(
+  gr_20 + theme(legend.position="none"),
+  gr_21+ theme(legend.position="none"),
+  gr_22 + theme(legend.position="none"),
+  labels = c("A", "B", "C"),
+  nrow = 3
+)
+
+# extract a legend that is laid out horizontally
+legend_b <- get_legend(
+  gr_20 + guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom")
+)
+
+# add the legend underneath the row we made earlier. Give it 10%
+# of the height of one plot (via rel_heights).
+plot_grid(pg1, legend_b, nrow = 2, rel_heights = c(1, .1))
+#plot_grid(gr_20, gr_21, gr_22,
+#          labels = c("A", "B", "C"),
+#          ncol = 1, nrow = 3)
 ```
 
 
