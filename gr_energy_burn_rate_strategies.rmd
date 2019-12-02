@@ -1,0 +1,348 @@
+---
+title: "grande ronde energy rate figure"
+author: "MNSnyder"
+date: "11/25/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Grande Ronde summer steelhead Columbia River temperature time series from 2017. 
+4 scenarios included:
+
+* Columbia River 2017
+* Columbia River 2017, no CWRs
+* Columbia River 2017 plus 1
+* Columbia River 2017 plus 1, no CWRs
+
+Columbia 2017A assigns the John Day Pool temperature from the John Day forebay, which is the warmer part of the pool.
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(readr)
+library(lubridate)
+```
+
+
+```{r set up directories, echo=FALSE}
+# to run script on different computers specify sys.info()[4] and
+# specify path to model results folder and
+# folder containing look up tables
+
+# Nathan's computer -> NOT SET UP
+if(Sys.info()[4]=="FILL IN HERE"){
+  fishdir <- "C:\\Dropbox\\DUST regression\\"
+  scenario<-"Migration_w_steelhead-[1]" # scenario name
+  inputdir<-path.expand("E:/HexSim_Models/Fish Model/analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("E:/HexSim_Models/R_code/") #calibration data directory)
+}
+
+# Marcia's epa computer -> WORKS
+if(Sys.info()[4]=="LZ2626XMSNYDE02"){
+  fishdir<-path.expand("D:/Results_4Populations/gr_current_current/gr_current_current-[1]/") # results path
+  scenario<-"gr_current_current" # scenario name
+  inputdir<-path.expand("D:/HexSim_Models/CWR_Columbia/Columbia [small]/Analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("D:/HexSim_Models/CWR_Columbia/R_code/") # calibration data directory
+}
+
+# Joe's epa computer -> NOT SET UP
+if(Sys.info()[4]=="FILL IN HERE"){
+  fishdir<-path.expand("E:/Results/TEST/TEST-[1]/")
+  scenario<-"Migration_Test" # scenario name
+  inputdir<-path.expand("E:/HexSim_Models/Fish Model/analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("E:/HexSim_Models/R_code/") #calibration data directory)
+  }
+```
+
+#########################
+#### Import Data
+
+```{r import temp table and format, eval=TRUE, include=FALSE}
+# import table of water temperatures
+water_temps<-read.table(paste(inputdir,"Columbia2017B_TribsCurrent.csv",sep=""), header = FALSE, sep = ",")
+# first row is bonneville teemperature, drop all rows except first
+bonn_temp<-water_temps[2,]
+bonn_temp2<-t(bonn_temp) # transpose to long
+colnames(bonn_temp2)<-"bonn_temp" # change column name
+# add column for time step
+timestep<-seq(from=1,to=dim(bonn_temp2)[1],by=1) # create sequence for number of hours of temp
+#timestep<-seq(from=1, to=2928, by=1)
+temp<-cbind.data.frame(bonn_temp2, timestep)
+plot(bonn_temp2~timestep, data=temp, ylab="Bonneville Temperature", xlab=c("Model hour"))
+# replace 2 error values
+temp[1517,1]<-(21.56 + 21.33) / 2
+temp[1520,1]<-(21.67 + 21.83) / 2
+plot(bonn_temp2~timestep, data=temp, ylab="Bonneville Temperature", xlab=c("Model hour"))
+
+```
+
+
+```{r import end condition and format}
+# import in combined replicate DFs
+end_A<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+end_B<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+end_C<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
+end_D<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(end_A)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(end_B)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(end_C)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(end_D)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+```
+
+```{r import hourly and format}
+# import in combined replicate DFs
+hourly_A<-fread("D:/Results_4Populations/gr_Columbia2017B/combined/E14.csv", header=TRUE, sep=",")
+hourly_B<-fread("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F14.csv", header=TRUE, sep=",")
+hourly_C<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G14.csv", header=TRUE, sep=",")
+hourly_D<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H14.csv", header=TRUE, sep=",")
+
+# rename columns
+names(hourly_A)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(hourly_B)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(hourly_C)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(hourly_D)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+
+# add scenario designation
+hourly_A$scenario<-"Columbia 2017, CWR Current"
+hourly_B$scenario<-"Columbia 2017, No CWR"
+hourly_C$scenario<-"Columbia 2040 (2017), CWR Current"
+hourly_D$scenario<-"Columbia 2040 (2017), No CWR"
+
+# create scenario factor for each scenario
+hourly_A$scenario<-as.factor(hourly_A$scenario)
+hourly_B$scenario<-as.factor(hourly_B$scenario)
+hourly_C$scenario<-as.factor(hourly_C$scenario)
+hourly_D$scenario<-as.factor(hourly_D$scenario)
+  
+# combine all
+hourly_all<-rbind.data.frame(hourly_A, hourly_B, hourly_C, hourly_D)
+# change to factor
+hourly_all$scenario<-as.factor(hourly_all$scenario)
+```
+
+
+####################################
+### Data transformations
+
+```{r created energy used for all scenarios without gamete}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+end_A<-avail_energy_diff(end_A)
+end_B<-avail_energy_diff(end_B)
+end_C<-avail_energy_diff(end_C)
+end_D<-avail_energy_diff(end_D)
+
+# add scenario identifying column
+end_A$scenario<-"A"
+end_B$scenario<-"B"
+end_C$scenario<-"C"
+end_D$scenario<-"D"
+
+# combine DFs 
+all_end<-rbind.data.frame(end_A, end_B, end_C, end_D)
+```
+
+
+```{r combine mean temp with end condition}
+# subset end_condition all scenarios to one scenario
+#all_13_labels_A<-dplyr::filter(all_13_labels, scenario == "Columbia 2017, CWR Current")
+# join with mean temp for scenario
+# hourly_and_end_A<-merge(end_A, temp, by.x="ID", by.y="timestep")
+```
+
+```{r randomly select 500 pt for plotting}
+
+# randomssubset <- dplyr::sample_n(hourly_and_end_A,2000, replace=FALSE)
+
+```
+
+```{r convert model km to river km}
+bonn_river_km<-235
+hourly_A$columbia_km<-hourly_A$river_km + bonn_river_km
+```
+
+
+```{r convert to date from model hour}
+# create date sequence column
+date<-seq(ymd_hm("2017-7-1 0:00"), ymd_hm("2017-10-31 12:00"), by = "hour")
+hour_seq<-seq(1,2941,1)
+date_seq<-cbind.data.frame(date, hour_seq)
+# add date sequence column to hourly DF
+hourly_A_d<-merge(hourly_A, date_seq, by.x="Step", by.y="hour_seq")
+```
+
+
+```{r calculate energy loss rate}
+# sort by ID and Step
+hourly_A_sort<-hourly_A_d[order(ID, Step)]
+
+# use shift or lag to get difference
+hourly_A_sort[, eng_diff:= shift(energy) - energy, by = ID]
+# divide difference by original value to get rate
+hourly_A_sort[, burn_rate:= (eng_diff / shift(energy)) * 100, by = ID]
+#View(hourly_A_sort)
+#summary(hourly_A_sort$burn_rate)
+```
+
+
+```{r select some winners}
+gr_winners_A<-dplyr::filter(end_A, ED_per_used < 20 & ED_per_used > 19.75 )
+#dim(gr_winners)
+gr_winners_A_v<-unique(gr_winners_A$ID)
+hourly_A_sort_w <-dplyr::filter(hourly_A_sort, ID %in% gr_winners_A_v)
+# check out all winners on plot
+A<-ggplot(hourly_A_sort_w, aes(x=Step, y=river_km, group=ID, size=burn_rate))+
+  geom_point()
+#A
+# select winners
+aggregate(Time_entry~ID, data=gr_winners_A, min)
+# select 4 winners
+gr_winners_A_selected<-c("1563_3", "933_2", "472_1", "1480_2")
+hourly_A_sort_w <-dplyr::filter(hourly_A_sort, ID %in% gr_winners_A_selected)
+# add winner column
+hourly_A_sort_w$strategy<-"energy conserving"
+```
+
+
+```{r select some losers}
+gr_losers_A<-dplyr::filter(end_A, ED_per_used > 41.5 & ED_per_used < 42 )
+#dim(gr_winners)
+gr_losers_A_v<-unique(gr_losers_A$ID)
+hourly_A_sort_l <-dplyr::filter(hourly_A_sort, ID %in% gr_losers_A_v)
+# check out all losers on plot
+B<-ggplot(hourly_A_sort_l, aes(x=Step, y=river_km, group=ID, size=burn_rate))+
+  geom_point()
+#B
+# pick entry times
+aggregate(Time_entry~ID, data=gr_losers_A, min)
+# select 4 losers
+gr_losers_A_selected<-c("223_2","323_2", "610_1", "1535_3")
+hourly_A_sort_l <-dplyr::filter(hourly_A_sort, ID %in% gr_losers_A_selected)
+# add loser column
+hourly_A_sort_l$strategy<-"energetically costly"
+```
+
+
+```{r combine winner and loser DF scenario A}
+hourly_A_strategy<-rbind.data.frame(hourly_A_sort_w, hourly_A_sort_l)
+```
+
+
+```{r combine hourly temp with winners and losers}
+hourly_A_strategy_temp<-merge(hourly_A_strategy, temp, by.x="Step", by.y="timestep")
+```
+
+
+```{r create burn rate plot 2017 w winners and losers by hour}
+
+# plot subset of winners and losers
+C<-ggplot(hourly_A_strategy, aes(x=Step, y=river_km, group=ID, size=burn_rate, colour = strategy))+
+  geom_point()+
+  scale_color_manual(values=c("purple", "darkgreen"))+
+  theme_classic()
+C
+```
+
+```{r create burn rate plot 2017 w winners and losers by date}
+D<-ggplot(hourly_A_strategy, aes(x=date, y=river_km, group=ID, size=burn_rate, colour = strategy))+
+  geom_point()+
+  scale_color_manual(values=c("purple", "darkgreen"))+
+  theme_classic()+
+  xlab("Date")+
+  ylab("River km")
+D
+```
+ 
+ 
+```{r create burn rate ggplot 2017 w winner and losers by date plus temperature, eval=FALSE}
+# ggplot version of dual axis
+# problem is can not adjust range of temperature axis
+E<-ggplot(hourly_A_strategy_temp, mapping=aes(x=date, y=river_km, group=ID, size=burn_rate, colour = strategy))+
+  geom_point()+
+  scale_color_manual(values=c("purple", "darkgreen"))+
+  geom_line(hourly_A_strategy_temp, mapping=aes(x=date, y=bonn_temp*(300-15)/25 ), color="red")+
+  scale_y_continuous( sec.axis=sec_axis(~.*25/(300+ 15), name="Temperature"), 
+    limits = c(0, 300))+
+  theme_classic()+
+  xlab("Date")+
+  ylab("River km")
+  
+E
+```
+
+```{r burn rate base R plot 2017 w winner and losers by date plus temperature}
+# plot winners and losers
+par(mfrow = c(1,1),oma=c(0,0,0,3))
+palette(c("darkgreen","purple")) # specifies colors for winners and losers
+temp_color<-"orange"
+plot(hourly_A_strategy_temp$date, hourly_A_strategy_temp$columbia_km, 
+     ylim=c(200,600), pch=16, 
+     col=factor(hourly_A_strategy_temp$strategy), 
+     cex=(hourly_A_strategy_temp$burn_rate)*20, 
+     xlab="", ylab="River km", 
+     yaxt="none")
+axis(2, las=2)
+
+# add temperature plot on top
+par(new=TRUE)
+plot(hourly_A_strategy_temp$date,hourly_A_strategy_temp$bonn_temp, 
+     type="l", col=temp_color,
+          axes=FALSE, bty="n", xlab="",ylab="")
+axis(side=4, las=2, 
+     at=pretty(range(hourly_A_strategy_temp$bonn_temp)))
+mtext(expression(paste("Temperature (",degree,"C)")), side=4, line=3, col=temp_color )
+```
+
+############################################
+NOT USED YET
+############################################
+```{r select some losers}
+gr_losers<-dplyr::filter(hourly_and_end_A, ED_per_used > 41.5 & ED_per_used < 42)
+#dim(gr_losers)
+# create column for include
+gr_losers$losers_yes<-"y"
+# select 10 losers from hourly data
+E14$ID<-as.factor(E14$ID)
+# drop all columns except ID and winner flag
+gr_losers<-dplyr::select(gr_losers, "ID", "losers_yes")
+# merge winner DF with hourly
+E14_losers<-merge(E14, gr_losers, by.x="ID", by.y="ID")
+# drop unused factor levels
+E14_losers$refuge_name2.y<-as.factor(E14_losers$refuge_name2.y)
+```
+
+```{r select some winners}
+gr_winners_A<-dplyr::filter(end_A, ED_per_used < 20 & ED_per_used > 19.75 )
+#dim(gr_winners)
+gr_winners_A_v<-unique(gr_winners_A$ID)
+# create column for include
+gr_winners$winner_yes<-"y"
+# select 10 winners from hourly data
+E14$ID<-as.factor(E14$ID)
+# drop all columns except ID and winner flag
+gr_winners<-dplyr::select(gr_winners, "ID", "winner_yes")
+# merge winner DF with hourly
+E14_winners<-merge(E14, gr_winners, by.x="ID", by.y="ID")
+# drop unused factor levels
+E14_winners$refuge_name2.y<-as.factor(E14_winners$refuge_name2.y)
+```
+

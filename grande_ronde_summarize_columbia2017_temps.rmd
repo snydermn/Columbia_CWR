@@ -471,6 +471,22 @@ zlim2<-max(hourly_and_end_A$ED_per_used)
 contour(x = xgrid, y = ygrid, z = mtrx3d, zlim=c(zlim1, zlim2), labcex = 1.2, xlab = "Time migrating (d)", ylab ="Time in CWR (h)")
 ```
 
+```{r time in system vs time in CWR contour plot3}
+data.loess <- loess(ED_per_used ~ Total_hours_cold_water * Time_in_system_d, data = hourly_and_end_A)
+Ygrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
+length(xgrid)
+Xgrid <-  seq(min(hourly_and_end_A$Total_hours_cold_water), max(hourly_and_end_A$Total_hours_cold_water), 30)
+length(ygrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid( Total_hours_cold_water = Xgrid, Time_in_system_d = Ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$ED_per_used)
+zlim2<-max(hourly_and_end_A$ED_per_used)
+contour(y = Ygrid, x = Xgrid, z = mtrx3d, zlim=c(zlim1, zlim2), labcex = 1.2, ylab = "Time migrating (d)", xlab ="Time in CWR (h)")
+```
+
 
 ```{r time in system vs time in CWR contour plot2}
 data.loess <- loess(Total_hours_cold_water ~ Time_in_system_d * ED_per_used, data = hourly_and_end_A)

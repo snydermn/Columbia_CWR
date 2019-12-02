@@ -1,7 +1,7 @@
 ---
-title: "Bonneville passage date comparison Grande Ronde River summer steelhead"
-author: "MNSnyder"
-date: "11/7/2019"
+title: "<span style='font-size: 16px'>Bonneville passage date comparison Grande Ronde River summer steelhead</style>"
+author: "<span style='font-size: 16px'>MNSnyder</style>"
+date: "<span style='font-size: 16px'>11/20/19</style>"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -27,7 +27,7 @@ names(modeled)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", 
 
 ```
 
-```{r read in keefer pittag data}
+```{r read in keefer pit tag data}
 gr_keefer <- read_csv("D:/HexSim_Models/CWR_Columbia/Calibration/MKeefer_data/psg_timing_gr_keefer.csv", 
 col_types = cols(bodate = col_date(format = "%m/%d/%Y"), 
 grdate = col_date(format = "%m/%d/%Y"), 
