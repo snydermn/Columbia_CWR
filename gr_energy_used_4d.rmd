@@ -1,0 +1,162 @@
+---
+title: "Grande Ronde 4D plot"
+author: "MNSnyder"
+date: "11/25/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Grande Ronde summer steelhead Columbia River temperature time series from 2017. 
+4 scenarios included:
+
+* Columbia River 2017
+* Columbia River 2017, no CWRs
+* Columbia River 2017 plus 1
+* Columbia River 2017 plus 1, no CWRs
+
+Columbia 2017A assigns the John Day Pool temperature from the John Day forebay, which is the warmer part of the pool.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(readr)
+library(lubridate)
+```
+
+
+```{r set up directories, echo=FALSE}
+# to run script on different computers specify sys.info()[4] and
+# specify path to model results folder and
+# folder containing look up tables
+
+# Nathan's computer -> NOT SET UP
+if(Sys.info()[4]=="FILL IN HERE"){
+  fishdir <- "C:\\Dropbox\\DUST regression\\"
+  scenario<-"Migration_w_steelhead-[1]" # scenario name
+  inputdir<-path.expand("E:/HexSim_Models/Fish Model/analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("E:/HexSim_Models/R_code/") #calibration data directory)
+}
+
+# Marcia's epa computer -> WORKS
+if(Sys.info()[4]=="LZ2626XMSNYDE02"){
+  fishdir<-path.expand("D:/Results_4Populations/gr_current_current/gr_current_current-[1]/") # results path
+  scenario<-"gr_current_current" # scenario name
+  inputdir<-path.expand("D:/HexSim_Models/CWR_Columbia/Columbia [small]/Analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("D:/HexSim_Models/CWR_Columbia/R_code/") # calibration data directory
+}
+
+# Joe's epa computer -> NOT SET UP
+if(Sys.info()[4]=="FILL IN HERE"){
+  fishdir<-path.expand("E:/Results/TEST/TEST-[1]/")
+  scenario<-"Migration_Test" # scenario name
+  inputdir<-path.expand("E:/HexSim_Models/Fish Model/analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("E:/HexSim_Models/R_code/") #calibration data directory)
+  }
+```
+
+```{r import end condition}
+# import in combined replicate DFs
+A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+C13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
+D13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(A13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(B13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(C13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+```
+
+
+```{r import temp table and format, eval=TRUE, include=FALSE}
+# import table of water temperatures
+water_temps<-read.table(paste(inputdir,"Columbia2017B_TribsCurrent.csv",sep=""), header = FALSE, sep = ",")
+# first row is bonneville teemperature, drop all rows except first
+bonn_temp<-water_temps[2,]
+bonn_temp2<-t(bonn_temp) # transpose to long
+colnames(bonn_temp2)<-"bonn_temp" # change column name
+# add column for time step
+timestep<-seq(from=1,to=dim(bonn_temp2)[1],by=1) # create sequence for number of hours of temp
+#timestep<-seq(from=1, to=2928, by=1)
+temp<-cbind.data.frame(bonn_temp2, timestep)
+plot(bonn_temp2~timestep, data=temp, ylab="Bonneville Temperature", xlab=c("Model hour"))
+```
+
+```{r get maximum Bonneville temperature hour}
+max_temp<-max(temp$bonn_temp)
+out<-dplyr::filter(temp, bonn_temp2 == max_temp)
+max_temp_hour<-998
+```
+
+
+```{r created energy used for all scenarios without gamete}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+A13<-avail_energy_diff(A13)
+B13<-avail_energy_diff(B13)
+C13<-avail_energy_diff(C13)
+D13<-avail_energy_diff(D13)
+
+# add scenario identifying column
+A13$scenario<-"A"
+B13$scenario<-"B"
+C13$scenario<-"C"
+D13$scenario<-"D"
+
+# combine DFs 
+all_13<-rbind.data.frame(A13, B13, C13, D13)
+```
+
+```{r calculate time of entry difference from maximum bonneville temperature hour}
+A13$peak_temp_diff<-A13$Time_entry - max_temp_hour
+```
+
+```{r randomly select 500 pt for plotting}
+
+randomssubset <- dplyr::sample_n(A13,500, replace=FALSE)
+
+```
+
+```{r plot entry diff CWR use passage time and energy lost}
+p1<-ggplot(randomssubset, aes(x = Time_in_system , y = ED_per_used, colour = peak_temp_diff, size = Total_hours_cold_water  ))+
+  geom_point()+
+  scale_colour_gradient( low = "yellow", high = "steelblue")+
+  theme_classic()
+p1
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
