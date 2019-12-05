@@ -140,10 +140,11 @@ E14_timing_max <- E14_timing %>%
   # sort by fish and date 
   arrange(ID, Date) %>% # necessary?
   top_n(n=1)# filter the data.frame by the last column to keep first row where 5 day mean is maximum
-    
-names(E14_timing_max) <- c("ID", "Date_Max5DAVGMaxT",  "max_temp_d", "max.temp.5")
+
 # drop unneeded columns
-E14_timing_max<- select(E14_timing_max, -mean_temp_d, -min_temp_d)
+E14_timing_max<- select(E14_timing_max, -mean_temp_d, -min_temp_d)    
+names(E14_timing_max) <- c("ID", "Date_Max5DAVGMaxT",  "max_temp_d", "max.temp.5")
+
 
 ## Date Max daily mean temp
 
@@ -157,10 +158,11 @@ E14_timing_mean <- E14_timing %>%
   # sort by fish and date 
   arrange(ID, Date) %>% # necessary?
   top_n(n=1)# filter the data.frame by the last column to keep first row where 5 day mean is maximum
-    
-names(E14_timing_mean) <- c("ID", "Date_Max5DAVGMeanT", "mean_temp_d",  "mean.temp.5")
+
 # drop unneeded columns
-E14_timing_mean<- select(E14_timing_mean, -min_temp_d, -max_temp_d)
+E14_timing_mean<- select(E14_timing_mean, -min_temp_d, -max_temp_d)    
+names(E14_timing_mean) <- c("ID", "Date_Max5DAVGMeanT", "mean_temp_d",  "mean.temp.5")
+
 
 ## Date Min daily min temp
 
@@ -219,7 +221,7 @@ all_E<-select(E14_sub2, ID, temp_1, date_time)
 ```
 
 
-```{r thermal exposure metrics with full dataset}
+```{r thermal exposure metrics with full dataset, eval=FALSE}
 
 ### magnitude and variability thermal metrics ###
 
@@ -273,10 +275,7 @@ E14_DD<-DF %>%
 
 ```
 
-
 ```{r function to calculate frequency metrics}
-
-
 
 freq_f <- function (DF, threshot, threscold) {
 E14_freq<-DF %>%
@@ -297,12 +296,146 @@ E14_freq<-DF %>%
 
 
 ```{r function to calculate timing metrics}
+### Timing metrics ###
 
+## calculate daily mean, min, max, temperatures
+
+timing_all_f <- function (DF) {
+E14_timing<-DF %>%
+  # create new day column from date-time to get daily stats
+  mutate(Date = floor_date(date_time, "day")) %>%
+  # for each fish and day
+  group_by(ID, Date) %>%
+  # calculate daily mean, min, max
+  summarize(mean_temp_d = mean(temp_1), min_temp_d = min(temp_1), max_temp_d = max(temp_1))
+  
+## Date Max daily max temp
+
+E14_timing_max <- E14_timing %>%
+  # sort
+  arrange(ID, Date) %>%
+  # get rolling mean of that day plus previous 5 days
+  mutate(max.temp.5 = rollmean(x = max_temp_d, 5, align = "right", fill = NA)) %>%
+  # by fish
+  group_by(ID) %>%
+  # sort by fish and date 
+  arrange(ID, Date) %>% # necessary?
+  top_n(n=1)# filter the data.frame by the last column to keep first row where 5 day mean is maximum
+
+# drop unneeded columns
+E14_timing_max<- select(E14_timing_max, -mean_temp_d, -min_temp_d)    
+names(E14_timing_max) <- c("ID", "Date_Max5DAVGMaxT",  "max_temp_d", "max.temp.5")
+
+
+## Date Max daily mean temp
+
+E14_timing_mean <- E14_timing %>%
+  # sort
+  arrange(ID, Date) %>%
+  # get rolling mean of that day plus previous 5 days
+  mutate(mean.temp.5 = rollmean(x = mean_temp_d, 5, align = "right", fill = NA)) %>%
+  # by fish
+  group_by(ID) %>%
+  # sort by fish and date 
+  arrange(ID, Date) %>% # necessary?
+  top_n(n=1)# filter the data.frame by the last column to keep first row where 5 day mean is maximum
+
+# drop unneeded columns
+E14_timing_mean<- select(E14_timing_mean, -min_temp_d, -max_temp_d)    
+names(E14_timing_mean) <- c("ID", "Date_Max5DAVGMeanT", "mean_temp_d",  "mean.temp.5")
+
+
+## Date Min daily min temp
+
+E14_timing_min <- E14_timing %>%
+  # sort
+  arrange(ID, Date) %>%
+  # get rolling mean of min that day plus previous 5 days
+  mutate(min.temp.5 = rollmean(x = min_temp_d, 5, align = "right", fill = NA)) %>%
+  # by fish
+  group_by(ID) %>%
+  # sort by fish and date 
+  arrange(ID, Date) %>% # necessary?
+  # use slice to get earliest date of min
+  slice(which.min(min.temp.5))
+
+names(E14_timing_min) <- c("ID", "Date_Min5DAVGMinT", "mean_temp_d", "min_temp_d", "max_temp_d", "min.temp.5")
+# drop unneeded columns
+E14_timing_min <- select(E14_timing_min, -mean_temp_d, -max_temp_d)  
+
+
+
+timing_merge1<-merge(E14_timing_min, E14_timing_mean, by.x="ID", by.y="ID")
+timing_all<-merge(timing_merge1, E14_timing_max, by.x="ID", by.y="ID")
+
+}
 ```
 
 
 ```{r function to calculate rate of change metric}
 
+rate_change_f <- function (DF) {
+  
+E14_timing<-DF %>%
+  # create new day column from date-time to get daily stats
+  mutate(Date = floor_date(date_time, "day")) %>%
+  # for each fish and day
+  group_by(ID, Date) %>%
+  # calculate daily mean, min, max
+  summarize(mean_temp_d = mean(temp_1), min_temp_d = min(temp_1), max_temp_d = max(temp_1))
+  
+## Date Max daily max temp
+
+E14_timing_max <- E14_timing %>%
+  # sort
+  arrange(ID, Date) %>%
+  # get rolling mean of that day plus previous 5 days
+  mutate(max.temp.5 = rollmean(x = max_temp_d, 5, align = "right", fill = NA)) %>%
+  # by fish
+  group_by(ID) %>%
+  # sort by fish and date 
+  arrange(ID, Date) %>% # necessary?
+  top_n(n=1)# filter the data.frame by the last column to keep first row where 5 day mean is maximum
+
+# drop unneeded columns
+E14_timing_max<- select(E14_timing_max, -mean_temp_d, -min_temp_d)    
+names(E14_timing_max) <- c("ID", "Date_Max5DAVGMaxT",  "max_temp_d", "max.temp.5")
+
+
+## Date Min daily min temp
+
+E14_timing_min <- E14_timing %>%
+  # sort
+  arrange(ID, Date) %>%
+  # get rolling mean of min that day plus previous 5 days
+  mutate(min.temp.5 = rollmean(x = min_temp_d, 5, align = "right", fill = NA)) %>%
+  # by fish
+  group_by(ID) %>%
+  # sort by fish and date 
+  arrange(ID, Date) %>% # necessary?
+  # use slice to get earliest date of min
+  slice(which.min(min.temp.5))
+  
+names(E14_timing_min) <- c("ID", "Date_Min5DAVGMinT", "mean_temp_d", "min_temp_d", "max_temp_d", "min.temp.5")
+# drop unneeded columns
+E14_timing_min <- select(E14_timing_min, -mean_temp_d, -max_temp_d)
+
+E14_m1<-merge(E14_timing_max, E14_timing_min, by.x="ID", by.y="ID")
+
+# calculate difference between max and min 5 day average temperatures  
+E14_m1$min_temp_diff<-E14_m1$max.temp.5 - E14_m1$min.temp.5
+
+# calculate number of days between max 5 day avg temp and min 5 day avg temp
+E14_m1$days_diff<-abs ( E14_m1$Date_Max5DAVGMaxT - E14_m1$Date_Min5DAVGMinT )
+
+# convert to integer data type from day data type
+E14_m1$days_diff<-as.numeric(E14_m1$days_diff)
+
+# calculate rate of change
+E14_m1$RC <- E14_m1$min_temp_diff / E14_m1$days_diff
+
+return(E14_m1)
+}
 ```
 
 
@@ -320,8 +453,39 @@ thres_hot <- 21
 thres_cold <- 18
 E14_freq<-freq_f(all_E, thres_hot, thres_cold)
 
+# timing metrics
+timing_out<-timing_all_f(all_E)
+
+# Rate of change metric
+ROC_out<-rate_change_f(all_E)
+
 ```
 
+```{r create function to run all functions and merge metric DFs}
+thres_hot <- 21
+thres_cold <- 18
+
+all_metrics_f <- function(DF) {
+  A<-mag_var(all_E) # keep all
+  B<-dd_f(all_E) # keep all
+  C<-freq_f(all_E, thres_hot, thres_cold) # keep all
+  D<-timing_all_f(all_E) # need to drop some columns before merge
+  E<-rate_change_f(all_E) # need to drop some columns before merge
+  
+  # drop unneeded columns from D
+  D2<-select(D, -min_temp_d, -min.temp.5, -mean_temp_d, -mean.temp.5, -max_temp_d, -max.temp.5)
+  # drop unneeded columns from E
+  E2<- select(E, ID, RC)
+  
+  F<-merge(A, B, by.x="ID", by.y="ID")
+  G<-merge(F, C, by.x="ID", by.y="ID")
+  H<-merge(G, D2, by.x="ID", by.y="ID")
+  I<-merge(H, E2, by.x="ID", by.y="ID")
+  return(I)
+}
+
+
+```
 
 
 
