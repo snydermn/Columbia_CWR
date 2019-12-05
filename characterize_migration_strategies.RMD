@@ -1,0 +1,349 @@
+---
+title: "characterize migration strategies"
+author: "MNSnyder"
+date: "12/3/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(StreamThermal)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(lubridate)
+library(dplyr)
+```
+
+```{r import hourly, eval=TRUE}
+# import in combined replicate DFs
+E14<-fread("D:/Results_4Populations/gr_Columbia2017B/combined/E14.csv", header=TRUE, sep=",")
+#F14<-fread("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F14.csv", header=TRUE, sep=",")
+#G14<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G14.csv", header=TRUE, sep=",")
+#H14<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H14.csv", header=TRUE, sep=",")
+
+# rename columns
+names(E14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+# names(F14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+# names(G14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+# names(H14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+
+# add scenario designation
+E14$scenario<-"Columbia 2017, CWR Current"
+# F14$scenario<-"Columbia 2017, No CWR"
+# G14$scenario<-"Columbia 2040 (2017), CWR Current"
+# H14$scenario<-"Columbia 2040 (2017), No CWR"
+
+# # create scenario factor for each scenario
+E14$scenario<-as.factor(E14$scenario)
+# F14$scenario<-as.factor(F14$scenario)
+# G14$scenario<-as.factor(G14$scenario)
+# H14$scenario<-as.factor(H14$scenario)
+#   
+# # combine all
+# hourly_all<-rbind.data.frame(E14, F14, G14, H14)
+# # change to factor
+# hourly_all$scenario<-as.factor(hourly_all$scenario)
+```
+
+```{r select a few fish IDs for testing}
+keep<-c("164_1", "1145_1", "1680_1", "307_1", "1224_1")
+E14_sub<-dplyr::filter(E14, ID %in% keep)
+```
+
+```{r add date column to hourly data}
+# create date time sequence
+date_time<-seq(ymd_hm("2017-7-1 0:00"), ymd_hm("2017-10-31 12:00"), by = "hour")
+# create sequence for model hour
+hour_seq<-seq(1,2941, by=1)
+# combine
+date_time_df<-cbind.data.frame(hour_seq, date_time)
+# merge with hourly DF
+E14_sub2<-merge(E14_sub, date_time_df, by.x="Step", by.y="hour_seq")
+# drop unnecessary columns
+Col.keep<-c("ID", "temp_1", "date_time")
+E14_sub3<-E14_sub2[,Col.keep]
+
+
+```
+
+
+```{r generate average daily stats from hourly input}
+
+### magnitude and variability thermal metrics ###
+
+E14_mag_var<-E14_sub3 %>%
+  # create new day column from date-time to get daily stats
+  mutate(Date = floor_date(date_time, "day")) %>%
+  # for each fish and day
+  group_by(ID, Date) %>%
+  # calculate daily mean, min, max
+  summarize(mean_temp_d = mean(temp_1), min_temp_d = min(temp_1), max_temp_d = max(temp_1)) %>% 
+  # calculate daily range 
+  mutate(range_d =  max_temp_d - min_temp_d) %>%
+  group_by(ID) %>%
+  # calculate average daily mean, average daily max, average daily min, average daily range, and range of daily mean
+  summarize(ADmean = mean(mean_temp_d), ADmin = mean(min_temp_d), ADmax = mean(max_temp_d), ADrange = mean(range_d), 
+            Rmean = max(mean_temp_d) - min(mean_temp_d))
+
+### Degree day metrics ###
+
+E14_DD<-E14_sub3 %>% 
+  group_by(ID) %>%
+  # calculate total Degree hours
+  summarize(DD = sum(temp_1))
+
+### Frequency metrics ####
+
+# set threshold for hot and cold events
+thres_hot <- 21
+thres_cold <- 18
+
+E14_freq<-E14_sub3 %>%
+  # create new day column from date-time to get daily stats
+  mutate(Date = floor_date(date_time, "day")) %>%
+  # for each fish and day
+  group_by(ID, Date) %>%
+  # calculate daily mean, min, max
+  summarize(mean_temp_d = mean(temp_1), min_temp_d = min(temp_1), max_temp_d = max(temp_1)) %>% 
+  # calculate number of days mean, min, and max, daily temperature exceeds threshold for hot events
+  summarise(FmaxCT = sum(max_temp_d > thres_hot, na.rm = TRUE),
+            FminCT = sum(min_temp_d > thres_hot, na.rm = TRUE), 
+            FmeanCT = sum(mean_temp_d > thres_hot, na.rm = TRUE),
+            F_cold = sum(max_temp_d < thres_cold, na.rm = TRUE))
+
+### Timing metrics ###
+
+## calculate daily mean, min, max, temperatures
+
+E14_timing<-E14_sub3 %>%
+  # create new day column from date-time to get daily stats
+  mutate(Date = floor_date(date_time, "day")) %>%
+  # for each fish and day
+  group_by(ID, Date) %>%
+  # calculate daily mean, min, max
+  summarize(mean_temp_d = mean(temp_1), min_temp_d = min(temp_1), max_temp_d = max(temp_1))
+  
+## Date Max daily max temp
+
+E14_timing_max <- E14_timing %>%
+  # sort
+  arrange(ID, Date) %>%
+  # get rolling mean of that day plus previous 5 days
+  mutate(max.temp.5 = rollmean(x = max_temp_d, 5, align = "right", fill = NA)) %>%
+  # by fish
+  group_by(ID) %>%
+  # sort by fish and date 
+  arrange(ID, Date) %>% # necessary?
+  top_n(n=1)# filter the data.frame by the last column to keep first row where 5 day mean is maximum
+    
+names(E14_timing_max) <- c("ID", "Date_Max5DAVGMaxT",  "max_temp_d", "max.temp.5")
+# drop unneeded columns
+E14_timing_max<- select(E14_timing_max, -mean_temp_d, -min_temp_d)
+
+## Date Max daily mean temp
+
+E14_timing_mean <- E14_timing %>%
+  # sort
+  arrange(ID, Date) %>%
+  # get rolling mean of that day plus previous 5 days
+  mutate(mean.temp.5 = rollmean(x = mean_temp_d, 5, align = "right", fill = NA)) %>%
+  # by fish
+  group_by(ID) %>%
+  # sort by fish and date 
+  arrange(ID, Date) %>% # necessary?
+  top_n(n=1)# filter the data.frame by the last column to keep first row where 5 day mean is maximum
+    
+names(E14_timing_mean) <- c("ID", "Date_Max5DAVGMeanT", "mean_temp_d",  "mean.temp.5")
+# drop unneeded columns
+E14_timing_mean<- select(E14_timing_mean, -min_temp_d, -max_temp_d)
+
+## Date Min daily min temp
+
+E14_timing_min <- E14_timing %>%
+  # sort
+  arrange(ID, Date) %>%
+  # get rolling mean of min that day plus previous 5 days
+  mutate(min.temp.5 = rollmean(x = min_temp_d, 5, align = "right", fill = NA)) %>%
+  # by fish
+  group_by(ID) %>%
+  # sort by fish and date 
+  arrange(ID, Date) %>% # necessary?
+  # use slice to get earliest date of min
+  slice(which.min(min.temp.5))
+  
+names(E14_timing_min) <- c("ID", "Date_Min5DAVGMinT", "mean_temp_d", "min_temp_d", "max_temp_d", "min.temp.5")
+# drop unneeded columns
+E14_timing_min <- select(E14_timing_min, -mean_temp_d, -max_temp_d)
+
+### Rate of change metrics ###
+  
+E14_m1<-merge(E14_timing_max, E14_timing_min, by.x="ID", by.y="ID")
+
+# calculate difference between max and min 5 day average temperatures  
+E14_m1$min_temp_diff<-E14_m1$max.temp.5 - E14_m1$min.temp.5
+
+# calculate number of days between max 5 day avg temp and min 5 day avg temp
+E14_m1$days_diff<-abs ( E14_m1$Date_Max5DAVGMaxT - E14_m1$Date_Min5DAVGMinT )
+
+# convert to integer data type from day data type
+E14_m1$days_diff<-as.numeric(E14_m1$days_diff)
+
+# calculate rate of change
+E14_m1$RC <- E14_m1$min_temp_diff / E14_m1$days_diff
+```
+
+##########################################################
+############################################################
+######### try with full data set ############################
+
+
+```{r try with full dataset}
+
+# create date time sequence
+date_time<-seq(ymd_hm("2017-7-1 0:00"), ymd_hm("2017-10-31 12:00"), by = "hour")
+# create sequence for model hour
+hour_seq<-seq(1,2941, by=1)
+# combine
+date_time_df<-cbind.data.frame(hour_seq, date_time)
+# merge with hourly DF
+E14_sub2<-merge(E14, date_time_df, by.x="Step", by.y="hour_seq")
+# drop unnecessary columns
+Col.keep<-c("ID", "temp_1", "date_time")
+all_E<-select(E14_sub2, ID, temp_1, date_time)
+
+```
+
+
+```{r thermal exposure metrics with full dataset}
+
+### magnitude and variability thermal metrics ###
+
+E14_mag_var<-all_E %>%
+  # create new day column from date-time to get daily stats
+  mutate(Date = floor_date(date_time, "day")) %>%
+  # for each fish and day
+  group_by(ID, Date) %>%
+  # calculate daily mean, min, max
+  summarize(mean_temp_d = mean(temp_1), min_temp_d = min(temp_1), max_temp_d = max(temp_1)) %>% 
+  # calculate daily range 
+  mutate(range_d =  max_temp_d - min_temp_d) %>%
+  group_by(ID) %>%
+  # calculate average daily mean, average daily max, average daily min, average daily range, and range of daily mean
+  summarize(ADmean = mean(mean_temp_d), ADmin = mean(min_temp_d), ADmax = mean(max_temp_d), ADrange = mean(range_d), 
+            Rmean = max(mean_temp_d) - min(mean_temp_d))
+```
+
+```{r function magnitude and variability}
+
+mag_var <- function(DF){
+  
+E14_mag_var<-DF %>%
+  # create new day column from date-time to get daily stats
+  mutate(Date = floor_date(date_time, "day")) %>%
+  # for each fish and day
+  group_by(ID, Date) %>%
+  # calculate daily mean, min, max
+  summarize(mean_temp_d = mean(temp_1), min_temp_d = min(temp_1), max_temp_d = max(temp_1)) %>% 
+  # calculate daily range 
+  mutate(range_d =  max_temp_d - min_temp_d) %>%
+  group_by(ID) %>%
+  # calculate average daily mean, average daily max, average daily min, average daily range, and range of daily mean
+  summarize(ADmean = mean(mean_temp_d), ADmin = mean(min_temp_d), ADmax = mean(max_temp_d), ADrange = mean(range_d), 
+            Rmean = max(mean_temp_d) - min(mean_temp_d))
+
+}
+
+
+```
+
+```{r function to calculate cumulative degree hours}
+### Degree day metrics ###
+
+dd_f <- function (DF) {
+E14_DD<-DF %>% 
+  group_by(ID) %>%
+  # calculate total Degree hours
+  summarize(DD = sum(temp_1))
+}
+
+```
+
+
+```{r function to calculate frequency metrics}
+
+
+
+freq_f <- function (DF, threshot, threscold) {
+E14_freq<-DF %>%
+  # create new day column from date-time to get daily stats
+  mutate(Date = floor_date(date_time, "day")) %>%
+  # for each fish and day
+  group_by(ID, Date) %>%
+  # calculate daily mean, min, max
+  summarize(mean_temp_d = mean(temp_1), min_temp_d = min(temp_1), max_temp_d = max(temp_1)) %>% 
+  # calculate number of days mean, min, and max, daily temperature exceeds threshold for hot events
+  summarise(FmaxCT = sum(max_temp_d > threshot, na.rm = TRUE),
+            FminCT = sum(min_temp_d > threshot, na.rm = TRUE), 
+            FmeanCT = sum(mean_temp_d > threshot, na.rm = TRUE),
+            F_cold = sum(max_temp_d < threscold, na.rm = TRUE))
+}
+
+```
+
+
+```{r function to calculate timing metrics}
+
+```
+
+
+```{r function to calculate rate of change metric}
+
+```
+
+
+```{r calculate thermal exposure metrics from functions}
+
+# magnitude and variability
+E14_mag_var<-mag_var(all_E)
+
+# DD
+E14_dd<-dd_f(all_E)
+
+# frequency metrics
+# set threshold for hot and cold events
+thres_hot <- 21
+thres_cold <- 18
+E14_freq<-freq_f(all_E, thres_hot, thres_cold)
+
+```
+
+
+
+
+```{r examples}
+myfunction <- function(arg1, arg2, ... ){
+statements
+return(object)
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
