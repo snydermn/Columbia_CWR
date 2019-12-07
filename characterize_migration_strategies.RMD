@@ -19,7 +19,10 @@ library(lubridate)
 library(dplyr)
 ```
 
-```{r import hourly, eval=TRUE}
+################################
+Import fish data
+
+```{r import hourly data, eval=TRUE}
 # import in combined replicate DFs
 E14<-fread("D:/Results_4Populations/gr_Columbia2017B/combined/E14.csv", header=TRUE, sep=",")
 #F14<-fread("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F14.csv", header=TRUE, sep=",")
@@ -50,29 +53,84 @@ E14$scenario<-as.factor(E14$scenario)
 # hourly_all$scenario<-as.factor(hourly_all$scenario)
 ```
 
+```{r import end condition data, eval=TRUE}
+# import in combined replicate DFs
+A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+#B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+#C13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
+#D13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
 
-
-##########################################################
-############################################################
-######### try with full data set ############################
-
-
-```{r try with full dataset}
-
-# create date time sequence
-date_time<-seq(ymd_hm("2017-7-1 0:00"), ymd_hm("2017-10-31 12:00"), by = "hour")
-# create sequence for model hour
-hour_seq<-seq(1,2941, by=1)
-# combine
-date_time_df<-cbind.data.frame(hour_seq, date_time)
-# merge with hourly DF
-E14_sub2<-merge(E14, date_time_df, by.x="Step", by.y="hour_seq")
-# drop unnecessary columns
-Col.keep<-c("ID", "temp_1", "date_time")
-all_E<-select(E14_sub2, ID, temp_1, date_time)
+# rename DF columns
+names(A13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+#names(B13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+#names(C13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+#names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
 
 ```
 
+#######################################
+Import temperature data
+```{r import temp table and format, eval=TRUE, include=FALSE}
+# import table of water temperatures
+water_temps<-read.table("D:/HexSim_Models/CWR_Columbia/Columbia [small]/Analysis/Data Lookup/Columbia2017B_TribsCurrent.csv", header = FALSE, sep = ",")
+
+```
+
+#####################
+Format data
+```{r format temperature data}
+# first row is bonneville teemperature, drop all rows except first
+bonn_temp<-water_temps[2,]
+bonn_temp2<-t(bonn_temp) # transpose to long
+colnames(bonn_temp2)<-"bonn_temp" # change column name
+# add column for time step
+timestep<-seq(from=1,to=dim(bonn_temp2)[1],by=1) # create sequence for number of hours of temp
+#timestep<-seq(from=1, to=2928, by=1)
+temp<-cbind.data.frame(bonn_temp2, timestep)
+plot(bonn_temp2~timestep, data=temp, ylab="Bonneville Temperature", xlab=c("Model hour"))
+```
+
+
+```{r get maximum Bonneville temperature hour}
+# figure out what hottest temperature is
+max_temp<-max(temp$bonn_temp)
+# leave only hours in DF with highest temperature
+all_max_temps<-dplyr::filter(temp, bonn_temp2 == max_temp)
+# choose latest model hour of max temp
+row_no<-dim(all_max_temps)[1]
+max_temp_hour<-all_max_temps$timestep[4]
+```
+
+
+```{r function to create date time sequence from model hour}
+
+# date_time_f <- function(DF){
+# # create date time sequence
+# date_time<-seq(ymd_hm("2017-7-1 0:00"), ymd_hm("2017-10-31 12:00"), by = "hour")
+# # create sequence for model hour
+# hour_seq<-seq(1,2941, by=1)
+# # combine
+# date_time_df<-cbind.data.frame(hour_seq, date_time)
+# # merge with hourly DF
+# DF2<-merge(DF, date_time_df, by.x="Step", by.y="hour_seq")
+# return(DF2)
+# }
+
+
+```
+
+```{r add date time and subset hourly data}
+# add date time column with function to hourly data
+E14_2<-date_time_f(E14)
+
+# drop unnecessary columns
+Col.keep<-c("ID", "temp_1", "date_time")
+all_E<-select(E14_2, ID, temp_1, date_time)
+```
+
+```{r add date time and subset end condition data}
+A13_dt<-date_time_f(A13)
+```
 
 
 ```{r function magnitude and variability}
@@ -298,7 +356,7 @@ ROC_out<-rate_change_f(all_E)
 
 ```
 
-```{r create function to run all functions and merge metric DFs}
+```{r create function to run all thermal exposure functions and merge metric DFs}
 thres_hot <- 21
 thres_cold <- 18
 
@@ -325,17 +383,108 @@ all_metrics_f <- function(DF) {
 ```
 
 ```{r create all thermal exposure metrics}
-out<-all_metrics_f(all_E)
+thermal_out<-all_metrics_f(all_E)
+```
+
+```{r create function simple exposure metrics from end condition data}
+end_condition_metrics_f <- function(DF){
+  DF$ReservoirH <- DF$Time_in_system - DF$Total_hours_cold_water
+  names(DF)[9] <- "cwrH"
+  DF$ExitDate <- DF$date_time
+  return(DF)
+  }
+
+```
+
+```{r create function entry date datetime from end condition model hour}
+
+entry_date_f <- function(DF){
+# create date time sequence
+date_time<-seq(ymd_hm("2017-7-1 0:00"), ymd_hm("2017-10-31 12:00"), by = "hour")
+# create sequence for model hour
+hour_seq<-seq(1,2941, by=1)
+# combine
+date_time_df<-cbind.data.frame(hour_seq, date_time)
+# drop unneeded columns
+DF2<-select(DF, ID, Time_entry)
+# merge with hourly DF
+DF3<-merge(DF2, date_time_df, by.x="Time_entry", by.y="hour_seq")
+return(DF3)
+  }
+
+```
+
+```{r create function entry timing}
+entry_timing_f <- function(DF, temp_data){
+  # figure out what hottest temperature is
+  max_temp<-max(temp_data$bonn_temp)
+  # leave only hours in DF with highest temperature
+  all_max_temps<-dplyr::filter(temp_data, bonn_temp2 == max_temp)
+  # choose latest model hour of max temp
+  row_no<-dim(all_max_temps)[1]
+  # select one max temperature hour
+  max_temp_hour<-all_max_temps$timestep[row_no]
+  # get entry time value
+  DF$peak_temp_diff<-DF$Time_entry - max_temp_hour
+  return(DF)
+}
 ```
 
 
-```{r examples}
-myfunction <- function(arg1, arg2, ... ){
-statements
-return(object)
+```{r create function that uses biological end condition functions}
+end_metrics_all_f <- function(DF, temp_DF){
+  A<-end_condition_metrics_f(DF)
+  B<-entry_date_f(DF)
+  C<-entry_timing_f(DF, temp_DF)
+  # prepare for merge
+  A_minus<-select(A, ID, ReservoirH, cwrH, ExitDate)
+  names(B)<-c("Time_entry", "ID", "EntryDate")
+  C_minus<-select(C, ID, peak_temp_diff)
+  D<-merge(A_minus, B, by.x="ID", by.y="ID")
+  E<-merge(D, C_minus, by.x="ID", by.y="ID")
+  return(E)
 }
 
+
 ```
+
+```{run biological metric functions}
+# end1<-end_condition_metrics_f(A13_dt)
+# ED<-entry_date_f(A13_dt)
+# entry_timing_1<-entry_timing_f(A13_dt, temp)
+
+end_all<-end_metrics_all_f(A13_dt, temp)
+
+```
+
+####################################################
+########## create biological metrics from hourly data
+#####################################################
+
+```{r}
+hourly_biological_f<-function(DF){
+  
+  # subset to refuge_id <6
+  
+  # take mean temp_1 to get 
+  MeanColumbiatemp <-
+    
+  # subset to refuge_id >5
+    
+  # take mean temp_1 to get
+  MeanCWRtemp <-
+    
+  #  subset hydropower so only fish ladder and tailraces
+    
+    
+  # sum up hours
+  hydroH <-  
+    }
+
+
+```
+
+
 
 
 
