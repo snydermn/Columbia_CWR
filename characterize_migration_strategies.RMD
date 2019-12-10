@@ -104,17 +104,17 @@ max_temp_hour<-all_max_temps$timestep[4]
 
 ```{r function to create date time sequence from model hour}
 
-# date_time_f <- function(DF){
-# # create date time sequence
-# date_time<-seq(ymd_hm("2017-7-1 0:00"), ymd_hm("2017-10-31 12:00"), by = "hour")
-# # create sequence for model hour
-# hour_seq<-seq(1,2941, by=1)
-# # combine
-# date_time_df<-cbind.data.frame(hour_seq, date_time)
-# # merge with hourly DF
-# DF2<-merge(DF, date_time_df, by.x="Step", by.y="hour_seq")
-# return(DF2)
-# }
+date_time_f <- function(DF){
+# create date time sequence
+date_time<-seq(ymd_hm("2017-7-1 0:00"), ymd_hm("2017-10-31 12:00"), by = "hour")
+# create sequence for model hour
+hour_seq<-seq(1,2941, by=1)
+# combine
+date_time_df<-cbind.data.frame(hour_seq, date_time)
+# merge with hourly DF
+DF2<-merge(DF, date_time_df, by.x="Step", by.y="hour_seq")
+return(DF2)
+}
 
 
 ```
@@ -126,10 +126,6 @@ E14_2<-date_time_f(E14)
 # drop unnecessary columns
 Col.keep<-c("ID", "temp_1", "date_time")
 all_E<-select(E14_2, ID, temp_1, date_time)
-```
-
-```{r add date time and subset end condition data}
-A13_dt<-date_time_f(A13)
 ```
 
 
@@ -209,17 +205,14 @@ E14_timing<-DF %>%
 E14_timing_max <- E14_timing %>%
   # sort
   arrange(ID, Date) %>%
-  # get rolling mean of that day plus previous 5 days
-  mutate(max.temp.5 = rollmean(x = max_temp_d, 5, align = "right", fill = NA)) %>%
   # by fish
   group_by(ID) %>%
-  # sort by fish and date 
-  arrange(ID, Date) %>% # necessary?
-  top_n(n=1)# filter the data.frame by the last column to keep first row where 5 day mean is maximum
+  # use slice to get earliest date of min
+  slice(which.max(max_temp_d))
 
 # drop unneeded columns
 E14_timing_max<- select(E14_timing_max, -mean_temp_d, -min_temp_d)    
-names(E14_timing_max) <- c("ID", "Date_Max5DAVGMaxT",  "max_temp_d", "max.temp.5")
+names(E14_timing_max) <- c("ID", "Date_DMeanT",  "max_temp_d")
 
 
 ## Date Max daily mean temp
@@ -227,17 +220,13 @@ names(E14_timing_max) <- c("ID", "Date_Max5DAVGMaxT",  "max_temp_d", "max.temp.5
 E14_timing_mean <- E14_timing %>%
   # sort
   arrange(ID, Date) %>%
-  # get rolling mean of that day plus previous 5 days
-  mutate(mean.temp.5 = rollmean(x = mean_temp_d, 5, align = "right", fill = NA)) %>%
-  # by fish
+    # by fish
   group_by(ID) %>%
-  # sort by fish and date 
-  arrange(ID, Date) %>% # necessary?
-  top_n(n=1)# filter the data.frame by the last column to keep first row where 5 day mean is maximum
-
+  # use slice to get earliest date of min
+  slice(which.max(mean_temp_d))
 # drop unneeded columns
 E14_timing_mean<- select(E14_timing_mean, -min_temp_d, -max_temp_d)    
-names(E14_timing_mean) <- c("ID", "Date_Max5DAVGMeanT", "mean_temp_d",  "mean.temp.5")
+names(E14_timing_mean) <- c("ID", "Date_DMaxT", "mean_temp_d")
 
 
 ## Date Min daily min temp
@@ -245,16 +234,12 @@ names(E14_timing_mean) <- c("ID", "Date_Max5DAVGMeanT", "mean_temp_d",  "mean.te
 E14_timing_min <- E14_timing %>%
   # sort
   arrange(ID, Date) %>%
-  # get rolling mean of min that day plus previous 5 days
-  mutate(min.temp.5 = rollmean(x = min_temp_d, 5, align = "right", fill = NA)) %>%
-  # by fish
+   # by fish
   group_by(ID) %>%
-  # sort by fish and date 
-  arrange(ID, Date) %>% # necessary?
-  # use slice to get earliest date of min
-  slice(which.min(min.temp.5))
+    # use slice to get earliest date of min
+  slice(which.min(min_temp_d))
 
-names(E14_timing_min) <- c("ID", "Date_Min5DAVGMinT", "mean_temp_d", "min_temp_d", "max_temp_d", "min.temp.5")
+names(E14_timing_min) <- c("ID", "Date_DMinT", "mean_temp_d", "min_temp_d", "max_temp_d")
 # drop unneeded columns
 E14_timing_min <- select(E14_timing_min, -mean_temp_d, -max_temp_d)  
 
@@ -279,49 +264,43 @@ E14_timing<-DF %>%
   # calculate daily mean, min, max
   summarize(mean_temp_d = mean(temp_1), min_temp_d = min(temp_1), max_temp_d = max(temp_1))
   
+
 ## Date Max daily max temp
 
 E14_timing_max <- E14_timing %>%
   # sort
   arrange(ID, Date) %>%
-  # get rolling mean of that day plus previous 5 days
-  mutate(max.temp.5 = rollmean(x = max_temp_d, 5, align = "right", fill = NA)) %>%
   # by fish
   group_by(ID) %>%
-  # sort by fish and date 
-  arrange(ID, Date) %>% # necessary?
-  top_n(n=1)# filter the data.frame by the last column to keep first row where 5 day mean is maximum
+  # use slice to get earliest date of min
+  slice(which.max(max_temp_d))
 
 # drop unneeded columns
 E14_timing_max<- select(E14_timing_max, -mean_temp_d, -min_temp_d)    
-names(E14_timing_max) <- c("ID", "Date_Max5DAVGMaxT",  "max_temp_d", "max.temp.5")
-
+names(E14_timing_max) <- c("ID", "Date_DMaxT",  "max_temp_d")
 
 ## Date Min daily min temp
 
 E14_timing_min <- E14_timing %>%
   # sort
   arrange(ID, Date) %>%
-  # get rolling mean of min that day plus previous 5 days
-  mutate(min.temp.5 = rollmean(x = min_temp_d, 5, align = "right", fill = NA)) %>%
-  # by fish
+   # by fish
   group_by(ID) %>%
-  # sort by fish and date 
-  arrange(ID, Date) %>% # necessary?
-  # use slice to get earliest date of min
-  slice(which.min(min.temp.5))
-  
-names(E14_timing_min) <- c("ID", "Date_Min5DAVGMinT", "mean_temp_d", "min_temp_d", "max_temp_d", "min.temp.5")
-# drop unneeded columns
-E14_timing_min <- select(E14_timing_min, -mean_temp_d, -max_temp_d)
+    # use slice to get earliest date of min
+  slice(which.min(min_temp_d))
 
+names(E14_timing_min) <- c("ID", "Date_DMinT", "mean_temp_d", "min_temp_d", "max_temp_d")
+# drop unneeded columns
+E14_timing_min <- select(E14_timing_min, -mean_temp_d, -max_temp_d)  
+
+### merging max and min DFs
 E14_m1<-merge(E14_timing_max, E14_timing_min, by.x="ID", by.y="ID")
 
 # calculate difference between max and min 5 day average temperatures  
-E14_m1$min_temp_diff<-E14_m1$max.temp.5 - E14_m1$min.temp.5
+E14_m1$min_temp_diff<-E14_m1$max_temp_d - E14_m1$min_temp_d
 
 # calculate number of days between max 5 day avg temp and min 5 day avg temp
-E14_m1$days_diff<-abs ( E14_m1$Date_Max5DAVGMaxT - E14_m1$Date_Min5DAVGMinT )
+E14_m1$days_diff<-abs ( E14_m1$Date_DMaxT - E14_m1$Date_DMinT )
 
 # convert to integer data type from day data type
 E14_m1$days_diff<-as.numeric(E14_m1$days_diff)
@@ -338,22 +317,22 @@ return(E14_m1)
 
 # magnitude and variability
 E14_mag_var<-mag_var(all_E)
-
+dim(E14_mag_var)
 # DD
 E14_dd<-dd_f(all_E)
-
+dim(E14_dd)
 # frequency metrics
 # set threshold for hot and cold events
 thres_hot <- 21
 thres_cold <- 18
 E14_freq<-freq_f(all_E, thres_hot, thres_cold)
-
+dim(E14_freq)
 # timing metrics
 timing_out<-timing_all_f(all_E)
-
+dim(timing_out) #6000
 # Rate of change metric
 ROC_out<-rate_change_f(all_E)
-
+dim(ROC_out) #6000
 ```
 
 ```{r create function to run all thermal exposure functions and merge metric DFs}
@@ -368,7 +347,7 @@ all_metrics_f <- function(DF) {
   E<-rate_change_f(all_E) # need to drop some columns before merge
   
   # drop unneeded columns from D
-  D2<-select(D, -min_temp_d, -min.temp.5, -mean_temp_d, -mean.temp.5, -max_temp_d, -max.temp.5)
+  D2<-select(D, -min_temp_d, -mean_temp_d,  -max_temp_d)
   # drop unneeded columns from E
   E2<- select(E, ID, RC)
   
@@ -384,8 +363,13 @@ all_metrics_f <- function(DF) {
 
 ```{r create all thermal exposure metrics}
 thermal_out<-all_metrics_f(all_E)
+dim(thermal_out)
 ```
 
+
+################################################################
+####### create exposure metrics from end condition data
+#############################################################
 ```{r create function simple exposure metrics from end condition data}
 end_condition_metrics_f <- function(DF){
   DF$ReservoirH <- DF$Time_in_system - DF$Total_hours_cold_water
@@ -425,7 +409,7 @@ entry_timing_f <- function(DF, temp_data){
   # select one max temperature hour
   max_temp_hour<-all_max_temps$timestep[row_no]
   # get entry time value
-  DF$peak_temp_diff<-DF$Time_entry - max_temp_hour
+  DF$EntryTiming<-DF$Time_entry - max_temp_hour
   return(DF)
 }
 ```
@@ -448,12 +432,16 @@ end_metrics_all_f <- function(DF, temp_DF){
 
 ```
 
-```{run biological metric functions}
+```{r run biological metric functions on end condition data}
 # end1<-end_condition_metrics_f(A13_dt)
 # ED<-entry_date_f(A13_dt)
 # entry_timing_1<-entry_timing_f(A13_dt, temp)
 
-end_all<-end_metrics_all_f(A13_dt, temp)
+# run function to add date_time to end condition data
+A13_dt<-date_time_f(A13)
+
+# run function for end condition metrics
+biological1<-end_metrics_all_f(A13_dt, temp)
 
 ```
 
@@ -465,28 +453,73 @@ end_all<-end_metrics_all_f(A13_dt, temp)
 hourly_biological_f<-function(DF){
   
   # subset to refuge_id <6
-  
+  sub1<-DF %>% filter(refuge_id < 6) %>%
   # take mean temp_1 to get 
-  MeanColumbiatemp <-
+  group_by(ID) %>%
+  summarize( MeanColumbiatemp = mean(temp_1) )
     
   # subset to refuge_id >5
-    
+  sub2<-DF %>% filter(refuge_id > 5)  %>%
   # take mean temp_1 to get
-  MeanCWRtemp <-
+  group_by(ID) %>%
+  summarize( MeanCWRtemp = mean(temp_1) )
     
-  #  subset hydropower so only fish ladder and tailraces
-    
-    
-  # sum up hours
-  hydroH <-  
+  # subset hydropower so only fish ladder and tailraces
+  # 0 = outside of hydropower area # 1-8 = tailrace or fish ladder
+  sub3 <-  DF %>%
+  group_by(ID) %>%
+  # sum up hours per fish (rows per ID) hydropower > 0 
+  summarize (hydroH = sum(hydropower > 0, na.rm = TRUE))
+  
+  # merge DFs
+  A<-merge(sub1, sub2, by.x="ID", by.y="ID", all=TRUE)
+  merged_all<-merge(A, sub3, by.x="ID", by.y="ID", all=TRUE)
+  return(merged_all)
     }
 
 
 ```
 
 
+```{r run biological metric from hourly data function on hourly current current}
+
+biological2<-hourly_biological_f(E14_2)
+```
+
+```{r combine 3 metric DFs}
+metric1<-merge(biological1, biological2, by.x="ID", by.y="ID", all=TRUE)
+metric2<-merge(metric1, thermal_out, by.x="ID", by.y="ID")
+```
+
+################################################################
+##################### calculate percent energy used
+#################################################################
+
+```{r created energy used without gametes}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+A_energy<-avail_energy_diff(A13)
+
+```
 
 
+```{r combine metrics with energy used}
+metric3<-merge(metric2, A_energy, by.x="ID", by.y="ID")
+```
+
+
+```{r write out DF}
+write.csv(metric3, "D:/Results_4Populations/gr_Columbia2017B/combined/thermal_regime_params.csv")
+```
 
 #######################################################################
 ############################################################################
