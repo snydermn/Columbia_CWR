@@ -17,6 +17,14 @@ library(knitr)
 library(chron)
 library(lubridate)
 library(dplyr)
+library(plotly)
+library(GGally)
+library(tree) # decision tree
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering algorithms & visualization
+library(rpart)
+library(rpart.plot)
+library(partykit)
 ```
 
 ################################
@@ -25,46 +33,46 @@ Import fish data
 ```{r import hourly data, eval=TRUE}
 # import in combined replicate DFs
 E14<-fread("D:/Results_4Populations/gr_Columbia2017B/combined/E14.csv", header=TRUE, sep=",")
-#F14<-fread("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F14.csv", header=TRUE, sep=",")
-#G14<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G14.csv", header=TRUE, sep=",")
-#H14<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H14.csv", header=TRUE, sep=",")
+F14<-fread("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F14.csv", header=TRUE, sep=",")
+G14<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G14.csv", header=TRUE, sep=",")
+H14<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H14.csv", header=TRUE, sep=",")
 
 # rename columns
 names(E14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
-# names(F14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
-# names(G14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
-# names(H14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(F14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(G14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
+names(H14)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
 
 # add scenario designation
 E14$scenario<-"Columbia 2017, CWR Current"
-# F14$scenario<-"Columbia 2017, No CWR"
-# G14$scenario<-"Columbia 2040 (2017), CWR Current"
-# H14$scenario<-"Columbia 2040 (2017), No CWR"
+F14$scenario<-"Columbia 2017, No CWR"
+G14$scenario<-"Columbia 2040 (2017), CWR Current"
+H14$scenario<-"Columbia 2040 (2017), No CWR"
 
-# # create scenario factor for each scenario
+# create scenario factor for each scenario
 E14$scenario<-as.factor(E14$scenario)
-# F14$scenario<-as.factor(F14$scenario)
-# G14$scenario<-as.factor(G14$scenario)
-# H14$scenario<-as.factor(H14$scenario)
-#   
-# # combine all
-# hourly_all<-rbind.data.frame(E14, F14, G14, H14)
-# # change to factor
-# hourly_all$scenario<-as.factor(hourly_all$scenario)
+F14$scenario<-as.factor(F14$scenario)
+G14$scenario<-as.factor(G14$scenario)
+H14$scenario<-as.factor(H14$scenario)
+   
+# combine all
+hourly_all<-rbind.data.frame(E14, F14, G14, H14)
+# change to factor
+hourly_all$scenario<-as.factor(hourly_all$scenario)
 ```
 
 ```{r import end condition data, eval=TRUE}
 # import in combined replicate DFs
 A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
-#B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
-#C13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
-#D13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+C13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
+D13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
 
 # rename DF columns
 names(A13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
-#names(B13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
-#names(C13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
-#names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(B13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(C13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
 
 ```
 
@@ -117,15 +125,6 @@ return(DF2)
 }
 
 
-```
-
-```{r add date time and subset hourly data}
-# add date time column with function to hourly data
-E14_2<-date_time_f(E14)
-
-# drop unnecessary columns
-Col.keep<-c("ID", "temp_1", "date_time")
-all_E<-select(E14_2, ID, temp_1, date_time)
 ```
 
 
@@ -361,10 +360,6 @@ all_metrics_f <- function(DF) {
 
 ```
 
-```{r create all thermal exposure metrics}
-thermal_out<-all_metrics_f(all_E)
-dim(thermal_out)
-```
 
 
 ################################################################
@@ -410,10 +405,11 @@ entry_timing_f <- function(DF, temp_data){
   max_temp_hour<-all_max_temps$timestep[row_no]
   # get entry time value
   DF$EntryTiming<-DF$Time_entry - max_temp_hour
+  #DF$EntryPeriod<-ifelse(DF$Time_entry < 1000, "A", ifelse(DF$Time_entry > 1800), "C", "B")
+  #as.factor(DF$EntryPeriod)
   return(DF)
 }
 ```
-
 
 ```{r create function that uses biological end condition functions}
 end_metrics_all_f <- function(DF, temp_DF){
@@ -423,7 +419,7 @@ end_metrics_all_f <- function(DF, temp_DF){
   # prepare for merge
   A_minus<-select(A, ID, ReservoirH, cwrH, ExitDate)
   names(B)<-c("Time_entry", "ID", "EntryDate")
-  C_minus<-select(C, ID, peak_temp_diff)
+  C_minus<-select(C, ID, EntryTiming)
   D<-merge(A_minus, B, by.x="ID", by.y="ID")
   E<-merge(D, C_minus, by.x="ID", by.y="ID")
   return(E)
@@ -432,24 +428,12 @@ end_metrics_all_f <- function(DF, temp_DF){
 
 ```
 
-```{r run biological metric functions on end condition data}
-# end1<-end_condition_metrics_f(A13_dt)
-# ED<-entry_date_f(A13_dt)
-# entry_timing_1<-entry_timing_f(A13_dt, temp)
 
-# run function to add date_time to end condition data
-A13_dt<-date_time_f(A13)
-
-# run function for end condition metrics
-biological1<-end_metrics_all_f(A13_dt, temp)
-
-```
-
-####################################################
+#############################################################
 ########## create biological metrics from hourly data
-#####################################################
+###############################################################
 
-```{r}
+```{r create function to create hourly biological metrics}
 hourly_biological_f<-function(DF){
   
   # subset to refuge_id <6
@@ -481,21 +465,114 @@ hourly_biological_f<-function(DF){
 ```
 
 
-```{r run biological metric from hourly data function on hourly current current}
+#############################################################################
+####### run functions to generate metrics
+###############################################################################################
+```{r scenario A }
+# add date time column with function to hourly data
+E14_2<-date_time_f(E14)
 
+# drop unnecessary columns
+Col.keep<-c("ID", "temp_1", "date_time")
+all_E<-select(E14_2, ID, temp_1, date_time)
+# create all thermal exposure metrics
+thermal_out<-all_metrics_f(all_E)
+#dim(thermal_out)
+
+#run biological metric functions on end condition data}
+# run function to add date_time to end condition data
+A13_dt<-date_time_f(A13)
+
+# run function for end condition metrics
+biological1<-end_metrics_all_f(A13_dt, temp)
+
+# run biological metric from hourly data function on hourly current current}
 biological2<-hourly_biological_f(E14_2)
+# combine 3 metric DFs}
+metric1<-merge(biological1, biological2, by.x="ID", by.y="ID", all=TRUE)
+metric2A<-merge(metric1, thermal_out, by.x="ID", by.y="ID")
 ```
 
-```{r combine 3 metric DFs}
+```{r scenario B }
+# add date time column with function to hourly data
+F14_2<-date_time_f(F14)
+
+# drop unnecessary columns
+Col.keep<-c("ID", "temp_1", "date_time")
+all_F<-select(F14_2, ID, temp_1, date_time)
+# create all thermal exposure metrics
+thermal_out<-all_metrics_f(all_F)
+#dim(thermal_out)
+
+#run biological metric functions on end condition data}
+# run function to add date_time to end condition data
+B13_dt<-date_time_f(B13)
+
+# run function for end condition metrics
+biological1<-end_metrics_all_f(B13_dt, temp)
+
+# run biological metric from hourly data function on hourly current current}
+biological2<-hourly_biological_f(F14_2)
+# combine 3 metric DFs}
 metric1<-merge(biological1, biological2, by.x="ID", by.y="ID", all=TRUE)
-metric2<-merge(metric1, thermal_out, by.x="ID", by.y="ID")
+metric2B<-merge(metric1, thermal_out, by.x="ID", by.y="ID")
+```
+
+```{r scenario C }
+# add date time column with function to hourly data
+G14_2<-date_time_f(G14)
+
+# drop unnecessary columns
+Col.keep<-c("ID", "temp_1", "date_time")
+all_G<-select(G14_2, ID, temp_1, date_time)
+# create all thermal exposure metrics
+thermal_out<-all_metrics_f(all_G)
+#dim(thermal_out)
+
+#run biological metric functions on end condition data}
+# run function to add date_time to end condition data
+C13_dt<-date_time_f(C13)
+
+# run function for end condition metrics
+biological1<-end_metrics_all_f(C13_dt, temp)
+
+# run biological metric from hourly data function on hourly current current}
+biological2<-hourly_biological_f(G14_2)
+# combine 3 metric DFs}
+metric1<-merge(biological1, biological2, by.x="ID", by.y="ID", all=TRUE)
+metric2C<-merge(metric1, thermal_out, by.x="ID", by.y="ID")
+```
+
+```{r scenario D }
+# add date time column with function to hourly data
+H14_2<-date_time_f(H14)
+
+# drop unnecessary columns
+Col.keep<-c("ID", "temp_1", "date_time")
+all_H<-select(H14_2, ID, temp_1, date_time)
+# create all thermal exposure metrics
+thermal_out<-all_metrics_f(all_H)
+#dim(thermal_out)
+
+#run biological metric functions on end condition data}
+# run function to add date_time to end condition data
+D13_dt<-date_time_f(D13)
+
+# run function for end condition metrics
+biological1<-end_metrics_all_f(D13_dt, temp)
+
+# run biological metric from hourly data function on hourly current current}
+biological2<-hourly_biological_f(H14_2)
+# combine 3 metric DFs}
+metric1<-merge(biological1, biological2, by.x="ID", by.y="ID", all=TRUE)
+metric2D<-merge(metric1, thermal_out, by.x="ID", by.y="ID")
 ```
 
 ################################################################
 ##################### calculate percent energy used
 #################################################################
 
-```{r created energy used without gametes}
+```{r function to create energy used without gametes}
 # function to calculate cumulative degree days above a certain degree
 avail_energy_diff<-function(DF){
   DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
@@ -507,13 +584,753 @@ DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
 return(DF)
 }
 
+```
+
+```{r create energy lost from end condition DF}
 A_energy<-avail_energy_diff(A13)
+B_energy<-avail_energy_diff(B13)
+C_energy<-avail_energy_diff(C13)
+D_energy<-avail_energy_diff(D13)
 
 ```
 
 
 ```{r combine metrics with energy used}
-metric3<-merge(metric2, A_energy, by.x="ID", by.y="ID")
+metric3A<-merge(metric2A, A_energy, by.x="ID", by.y="ID")
+metric3B<-merge(metric2B, B_energy, by.x="ID", by.y="ID")
+metric3C<-merge(metric2C, C_energy, by.x="ID", by.y="ID")
+metric3D<-merge(metric2D, D_energy, by.x="ID", by.y="ID")
+
+
+# drop metrics from energy calculation
+metric3A<-select(metric3A, -Initial_energy_density, -Fitness_weight,-Fitness_energy_density,-Fitness_energy, -gamete, -initial_ED_avail, -energy_lost_gamete, -Time_entry.y, -MeanCWRtemp, -ExitDate, -EntryDate, -Date_DMinT, -Date_DMaxT, -Date_DMeanT, -RC, -Time_exit, -Population, -Date_DMinT, -Date_DMaxT, -Date_DMeanT)
+
+metric3B<-select(metric3B, -Initial_energy_density, -Fitness_weight,-Fitness_energy_density,-Fitness_energy, -gamete, -initial_ED_avail, -energy_lost_gamete, -Time_entry.y, -MeanCWRtemp, -ExitDate, -EntryDate, -Date_DMinT, -Date_DMaxT, -Date_DMeanT, -RC, -Time_exit, -Population, -Date_DMinT, -Date_DMaxT, -Date_DMeanT)
+
+metric3C<-select(metric3C, -Initial_energy_density, -Fitness_weight,-Fitness_energy_density,-Fitness_energy, -gamete, -initial_ED_avail, -energy_lost_gamete, -Time_entry.y, -MeanCWRtemp, -ExitDate, -EntryDate, -Date_DMinT, -Date_DMaxT, -Date_DMeanT, -RC, -Time_exit, -Population, -Date_DMinT, -Date_DMaxT, -Date_DMeanT)
+
+metric3D<-select(metric3D, -Initial_energy_density, -Fitness_weight,-Fitness_energy_density,-Fitness_energy, -gamete, -initial_ED_avail, -energy_lost_gamete, -Time_entry.y, -MeanCWRtemp, -ExitDate, -EntryDate, -Date_DMinT, -Date_DMaxT, -Date_DMeanT, -RC, -Time_exit, -Population, -Date_DMinT, -Date_DMaxT, -Date_DMeanT)
+
+# combine into one DF for all scenarios
+# add scenario designation
+metric3A$scenario<-"Columbia 2017, CWR Current"
+metric3B$scenario<-"Columbia 2017, No CWR"
+metric3C$scenario<-"Columbia 2040 (2017), CWR Current"
+metric3D$scenario<-"Columbia 2040 (2017), No CWR"
+
+# create scenario factor for each scenario
+metric3A$scenario<-as.factor(metric3A$scenario)
+metric3B$scenario<-as.factor(metric3B$scenario)
+metric3C$scenario<-as.factor(metric3C$scenario)
+metric3D$scenario<-as.factor(metric3D$scenario)
+
+# create winners and losers
+winner_thres<-21
+# create winners
+metric3A$strategy<-ifelse(metric3A$ED_per_used < winner_thres, "winner", "loser")
+metric3B$strategy<-ifelse(metric3B$ED_per_used < winner_thres, "winner", "loser")
+metric3C$strategy<-ifelse(metric3C$ED_per_used < winner_thres, "winner", "loser")
+metric3D$strategy<-ifelse(metric3D$ED_per_used < winner_thres, "winner", "loser")
+
+   
+# combine all
+metrics_all<-rbind.data.frame(metric3A, metric3B, metric3C, metric3D)
+# convert to long
+# drop metrics of non-numeric type
+#metrics_all2<-select(metrics_all, -ExitDate, -EntryDate, -Date_DMinT, -Date_DMaxT, -Date_DMeanT, -RC, -Time_exit, -Population)
+
+
+```
+
+
+```{r current w CWR}
+#winner_thres<-25
+# create winners
+#metric3A$strategy<-ifelse(metric3A$ED_per_used < winner_thres, "winner", "loser")
+
+# need to change to long form
+metric3A_long<-tidyr::gather(metric3A, metric, value, ReservoirH:ED_per_used, factor_key = TRUE)
+
+metric3A$refuge_use<-ifelse(metric3A$Total_hours_cold_water > 6, "yes", "no")
+metrics3A_all2<-select(metric3A, EntryTiming, Initial_weight, ReservoirH, refuge_use, strategy )
+# need to change to long form
+metrics3A_all2_long<-tidyr::gather(metrics3A_all2, metric, value, EntryTiming:ReservoirH, factor_key = TRUE)
+
+ggplot(metrics3A_all2_long, aes(x=strategy, y=value)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+
+```
+
+```{r all scenarios}
+# need to change to long form
+metric_all_long<-tidyr::gather(metrics_all, metric, value, ReservoirH:ED_per_used, factor_key = TRUE)
+
+ggplot(metric_all_long, aes(x=scenario, y=value, fill=strategy)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+metrics_all$refuge_use<-ifelse(metrics_all$Total_hours_cold_water > 6, "yes", "no")
+metrics_all2<-select(metrics_all, EntryTiming, Initial_weight, ReservoirH, refuge_use, strategy )
+# need to change to long form
+metrics_all2_long<-tidyr::gather(metrics_all2, metric, value, EntryTiming:ReservoirH, factor_key = TRUE)
+
+ggplot(metric3A_long, aes(x=strategy, y=value, fill=refuge_use)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+ggplot(metrics_all2_long, aes(x=ReservoirH, y=EntryTiming, fill=strategy))
+```
+
+##################################################### 
+# Cluster with EntryTiming, cwrH, and ReservoirH
+# TREE - I like these winner clusters for scenario A.
+```{r cluster strategies}
+metric3A_clust<-select(metric3A,EntryTiming, cwrH, ReservoirH, Initial_weight, strategy)
+metric3A_clust_win<-filter(metric3A_clust, strategy =="winner")
+set.seed(20)
+
+# determine optimal number of clusters with elbow method
+fviz_nbclust(metric3A_clust_win[,1:3], kmeans, method = "wss") # 4 or 5
+fviz_nbclust(metric3A_clust_win[,1:3], kmeans, method = "silhouette") # 2
+gap_stat <- clusGap(metric3A_clust_win[,1:3], FUN = kmeans, nstart = 25,
+                    K.max = 10, B = 50)
+# visualize gap stat
+fviz_gap_stat(gap_stat)
+
+# cluster
+clusters<-kmeans(metric3A_clust_win[,1:3], 5)
+# Save the cluster number in the dataset as column 'Borough'
+metric3A_clust_win$cluster <- as.factor(clusters$cluster)
+str(clusters)
+
+metric_all_long<-tidyr::gather(metric3A_clust_win, metric, value, EntryTiming:Initial_weight, factor_key = TRUE)
+
+ggplot(metric_all_long, aes(x=cluster, y=value)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+ggparcoord(metric3A_clust_win,
+    columns = 1:3, groupColumn = 6
+    ) 
+
+```
+
+Do a decision tree classifier on 4 clusters for scenario A winners.
+```{r decision tree classifier}
+set.seed(101)
+# drop tree.pred
+metric3A_clust_win<-select(metric3A_clust_win, -tree.pred, -scenario)
+train=sample(1:nrow(metric3A_clust_win), 200)
+# don't use Initial_weight
+tree.metric3A.winner = tree(cluster~.-Initial_weight -strategy, metric3A_clust_win, subset=train)
+# plot training tree
+plot(tree.metric3A.winner)
+text(tree.metric3A.winner, pretty=0)
+
+tree.pred = predict(tree.metric3A.winner, metric3A_clust_win[-train,], type="class")
+with(metric3A_clust_win[-train,], table(tree.pred, cluster)) # %82 accuracy
+
+# prune?
+# prune
+cv.thermal = cv.tree(tree.metric3A.winner, FUN = prune.misclass)
+cv.thermal
+plot(cv.thermal)
+
+# redo
+prune.thermal = prune.misclass(tree.metric3A.winner, best = 6)
+plot(prune.thermal)
+text(prune.thermal, pretty=0)
+
+# re-evaluate
+tree.pred = predict(prune.thermal, metric3A_clust_win[-train,], type="class")
+with(metric3A_clust_win[-train,], table(tree.pred, cluster)) # 81% accuracy
+
+# apply to whole dataset for join
+tree.pred.all = predict(prune.thermal, metric3A_clust_win, type="class")
+
+# add factor to dataframe
+metric3A_clust_win$tree.pred<-as.factor(tree.pred.all)
+
+
+```
+
+
+Use scenario1 winner decision tree cluster to classify scenario 2
+```{r}
+set.seed(101)
+metric3B_dt<-select(metric3B,EntryTiming, cwrH, ReservoirH, Initial_weight, strategy)
+metric3B_dt2<-filter(metric3B_dt, strategy =="winner")
+#train=sample(1:nrow(metric3B), 200)
+
+metric3B_dt2.pred = predict(prune.thermal, metric3B_dt2, type="class")
+metric3B_dt2$tree.pred <- as.factor(metric3B_dt2.pred)
+```
+
+
+```{r compare predicted clusters}
+summary(metric3A_clust_win$tree.pred)
+summary(metric3B_dt2$tree.pred)
+```
+
+
+Plot for each cluster 3-D plot of weight, entry time, reservoirH by scenario 1 or 2
+```{r}
+metric3A_clust_win$scenario<-"A"
+metric3B_dt2$scenario<-"B"
+metric3A_clust_win2 <- select(metric3A_clust_win, -tree.pred)
+metric3A_3B_wPred<-rbind.data.frame(metric3A_clust_win2, metric3B_dt2)
+metric3A_3B_wPred$scenario<-as.factor(metric3A_3B_wPred$scenario)
+
+#train=sample(1:nrow(metric3A_3B_wPred), 400)
+#asample<-metric3A_metric3B_subset_f[train,]
+
+cluster1<-filter(metric3A_3B_wPred, scenario=="A")
+
+plot_ly(data=metric3A_clust_win2,x=metric3A_clust_win2$EntryTiming, y=metric3A_clust_win2$cwrH, z=metric3A_clust_win2$ReservoirH, type="scatter3d", mode="markers",  size=20,  color=metric3A_clust_win2$cluster, colors = c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"), 
+                          opacity = rep(1.0, 5)) %>%
+  layout(
+    title = "clusters 1-5 for scenario 1 winners",
+    scene = list(
+      xaxis = list(title = "Entry Timing"),
+      yaxis = list(title = "Cold Water Refuge (h)"),
+      zaxis = list(title = "Reservoir (h)")
+    ))
+```
+
+Plot boxplot for each variable per cluster 
+```{r}
+A<-filter(metric3A_3B_wPred, scenario == "A")
+A2<-select(A, -strategy, -scenario, -Initial_weight)
+A3<-tidyr::gather(A2, metric, value, EntryTiming:ReservoirH, factor_key = TRUE)
+
+# I LIKE THIS PLOT MAKE FANCY FOR PAPER ALONG WITH THERMAL EXPOSURE VISUAL
+# for just scenario A 
+# fix facet labels
+vars.renames<-c("EntryTiming" ="Entry Timing", 
+                "cwrH"= "Cold Water Refuge (h)",
+                "ReservoirH" = "Reservoir (h)")
+
+
+group1<-ggplot(A3, aes(x=tree.pred, y=value, fill=tree.pred)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free', labeller = as_labeller(vars.renames)) +
+  xlab("Migration strategy") + ylab(" ") + 
+  theme_classic(base_size=20) + theme(legend.position = "none") +
+  scale_fill_manual(values=c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"))
+group1
+
+# for scenario A and B
+A2<-select(metric3A_3B_wPred, -strategy, -Initial_weight)
+A3<-tidyr::gather(A2, metric, value, EntryTiming:ReservoirH, factor_key = TRUE)
+
+# boxplot by parameter per cluster for scenario 
+ggplot(A3, aes(x=tree.pred, y=value, fill=scenario)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+
+
+```
+
+
+##################################################### 
+# Cluster with EntryTiming, cwrH, and ReservoirH
+# RPart tree
+
+```{r cluster strategies}
+metric3A_clust<-select(metric3A,EntryTiming, cwrH, ReservoirH, Initial_weight, strategy)
+metric3A_clust_win<-filter(metric3A_clust, strategy =="winner")
+set.seed(20)
+
+# determine optimal number of clusters with elbow method
+fviz_nbclust(metric3A_clust_win[,1:3], kmeans, method = "wss") # 4 or 5
+fviz_nbclust(metric3A_clust_win[,1:3], kmeans, method = "silhouette") # 2
+gap_stat <- clusGap(metric3A_clust_win[,1:3], FUN = kmeans, nstart = 25,
+                    K.max = 10, B = 50)
+# visualize gap stat
+fviz_gap_stat(gap_stat)
+
+# cluster
+clusters<-kmeans(metric3A_clust_win[,1:3], 5)
+# Save the cluster number in the dataset as column 'Borough'
+metric3A_clust_win$cluster <- as.factor(clusters$cluster)
+str(clusters)
+
+metric_all_long<-tidyr::gather(metric3A_clust_win, metric, value, EntryTiming:Initial_weight, factor_key = TRUE)
+
+ggplot(metric_all_long, aes(x=cluster, y=value)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+ggparcoord(metric3A_clust_win,
+    columns = 1:3, groupColumn = 6
+    ) 
+
+```
+
+Do a decision RPART tree classifier on 4 clusters for scenario A winners.
+```{r decision tree classifier}
+set.seed(101)
+# drop tree.pred
+metric3A_clust_win<-select(metric3A_clust_win, -strategy)
+train=sample(1:nrow(metric3A_clust_win), 100)
+train.set<-metric3A_clust_win[-train,]
+test.set<-metric3A_clust_win[train,]
+# don't use Initial_weight
+rpart.tree<-rpart::rpart(cluster ~ EntryTiming + cwrH + ReservoirH, method="class", data = train.set)
+
+# plot unpruned training tree
+printcp(rpart.tree) # display the results
+plotcp(rpart.tree) # visualize cross-validation results
+summary(rpart.tree) # detailed summary of splits
+plot(rpart.tree, uniform=TRUE,
+   main="Classification RTree")
+text(rpart.tree, use.n=TRUE, all=TRUE, cex=.8)
+prp(rpart.tree, faclen = 0, cex = 0.8, extra = 1)
+
+# look at error rate for unpruned tree
+predictions <- predict(rpart.tree, test.set, type="class")
+table(test.set$cluster, predictions) # %94
+
+# prune tree
+prune.rpart.tree <- prune(rpart.tree, cp=0.02) # pruning the tree
+plot(prune.rpart.tree, uniform=TRUE, branch=0.6)
+text(prune.rpart.tree, all=TRUE, use.n=TRUE)
+
+# try to plot with party
+rparty.tree <- as.party(rpart.tree)
+rparty.tree
+
+plot(rparty.tree)
+
+# apply to whole dataset for join
+tree.pred.all = predict(rpart.tree, metric3A_clust_win, type="class")
+
+# add factor to dataframe
+metric3A_clust_win$tree.pred<-as.factor(tree.pred.all)
+
+```
+
+Use scenario1 winner decision tree cluster to classify scenario 2
+```{r}
+set.seed(101)
+metric3B_dt<-select(metric3B,EntryTiming, cwrH, ReservoirH, Initial_weight, strategy)
+metric3B_dt2<-filter(metric3B_dt, strategy =="winner")
+#train=sample(1:nrow(metric3B), 200)
+
+metric3B_dt2.pred = predict(prune.thermal, metric3B_dt2, type="class")
+metric3B_dt2$tree.pred <- as.factor(metric3B_dt2.pred)
+```
+
+
+```{r compare predicted clusters}
+summary(metric3A_clust_win$tree.pred)
+summary(metric3B_dt2$tree.pred)
+```
+
+Plot for each cluster 3-D plot of weight, entry time, reservoirH by scenario 1 or 2
+```{r}
+metric3A_clust_win$scenario<-"A"
+metric3B_dt2$scenario<-"B"
+#metric3A_clust_win2 <- select(metric3A_clust_win, -tree.pred)
+#metric3A_3B_wPred<-rbind.data.frame(metric3A_clust_win2, metric3B_dt2)
+#metric3A_3B_wPred$scenario<-as.factor(metric3A_3B_wPred$scenario)
+
+#train=sample(1:nrow(metric3A_3B_wPred), 400)
+#asample<-metric3A_metric3B_subset_f[train,]
+
+cluster1<-filter(metric3A_clust_win, scenario=="A")
+
+plot_ly(data=metric3A_clust_win,x=metric3A_clust_win$EntryTiming, y=metric3A_clust_win$cwrH, z=metric3A_clust_win$ReservoirH, type="scatter3d", mode="markers",  size=20,  color=metric3A_clust_win$cluster, colors = c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"), 
+                          opacity = rep(1.0, 5)) %>%
+  layout(
+    title = "clusters 1-5 for scenario 1 winners",
+    scene = list(
+      xaxis = list(title = "Entry Timing"),
+      yaxis = list(title = "Cold Water Refuge (h)"),
+      zaxis = list(title = "Reservoir (h)")
+    ))
+```
+
+Plot boxplot for each variable per cluster 
+```{r}
+A<-filter(metric3A_3B_wPred, scenario == "A")
+A2<-select(A, -strategy, -scenario, -Initial_weight)
+A3<-tidyr::gather(A2, metric, value, EntryTiming:ReservoirH, factor_key = TRUE)
+
+# I LIKE THIS PLOT MAKE FANCY FOR PAPER ALONG WITH THERMAL EXPOSURE VISUAL
+# for just scenario A 
+# fix facet labels
+vars.renames<-c("EntryTiming" ="Entry Timing", 
+                "cwrH"= "Cold Water Refuge (h)",
+                "ReservoirH" = "Reservoir (h)")
+
+
+group1<-ggplot(A3, aes(x=tree.pred, y=value, fill=tree.pred)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free', labeller = as_labeller(vars.renames)) +
+  xlab("Migration strategy") + ylab(" ") + 
+  theme_classic(base_size=20) + theme(legend.position = "none") +
+  scale_fill_manual(values=c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"))
+group1
+
+# for scenario A and B
+A2<-select(metric3A_3B_wPred, -strategy, -Initial_weight)
+A3<-tidyr::gather(A2, metric, value, EntryTiming:ReservoirH, factor_key = TRUE)
+
+# boxplot by parameter per cluster for scenario 
+ggplot(A3, aes(x=tree.pred, y=value, fill=scenario)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+
+
+```
+
+
+######################################################
+# Try Cluster with EntryTiming, ReservoirH, and Initial_weight
+# not sure if this is going to work
+
+```{r cluster strategies}
+metric3A_clust<-select(metric3A,EntryTiming, cwrH, ReservoirH, Initial_weight, strategy)
+metric3A_clust_win<-filter(metric3A_clust, strategy =="winner")
+set.seed(20)
+
+for_keep<-c(1,3,4)
+
+# determine optimal number of clusters with elbow method
+fviz_nbclust(metric3A_clust_win[,for_keep], kmeans, method = "wss") # 4 or 5
+fviz_nbclust(metric3A_clust_win[,for_keep], kmeans, method = "silhouette") # 2
+gap_stat <- clusGap(metric3A_clust_win[,for_keep], FUN = kmeans, nstart = 25,
+                    K.max = 10, B = 50)
+# visualize gap stat
+fviz_gap_stat(gap_stat)
+
+# cluster
+clusters<-kmeans(metric3A_clust_win[,for_keep], 6)
+# Save the cluster number in the dataset as column 'Borough'
+metric3A_clust_win$cluster <- as.factor(clusters$cluster)
+str(clusters)
+
+metric_all_long<-tidyr::gather(metric3A_clust_win, metric, value, EntryTiming:Initial_weight, factor_key = TRUE)
+
+ggplot(metric_all_long, aes(x=cluster, y=value)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+ggparcoord(metric3A_clust_win,
+    columns = for_keep, groupColumn = 6
+    ) 
+
+```
+
+Do a decision tree classifier on 4 clusters for scenario A winners.
+```{r decision tree classifier}
+set.seed(101)
+# drop tree.pred
+metric3A_clust_win<-select(metric3A_clust_win,  -strategy)
+train=sample(1:nrow(metric3A_clust_win), 200)
+# don't use Initial_weight
+tree.metric3A.winner = tree(cluster~.-cwrH , metric3A_clust_win, subset=train)
+# plot training tree
+plot(tree.metric3A.winner)
+text(tree.metric3A.winner, pretty=0)
+
+tree.pred = predict(tree.metric3A.winner, metric3A_clust_win[-train,], type="class")
+with(metric3A_clust_win[-train,], table(tree.pred, cluster)) # %82 accuracy
+
+# prune?
+# prune
+cv.thermal = cv.tree(tree.metric3A.winner, FUN = prune.misclass)
+cv.thermal
+plot(cv.thermal)
+
+# redo
+prune.thermal = prune.misclass(tree.metric3A.winner, best = 6)
+plot(prune.thermal)
+text(prune.thermal, pretty=0)
+
+# re-evaluate
+tree.pred = predict(prune.thermal, metric3A_clust_win[-train,], type="class")
+with(metric3A_clust_win[-train,], table(tree.pred, cluster)) # 85% accuracy
+
+# apply to whole dataset for join
+tree.pred.all = predict(prune.thermal, metric3A_clust_win, type="class")
+
+# add factor to dataframe
+metric3A_clust_win$tree.pred<-as.factor(tree.pred.all)
+
+```
+
+
+```{r}
+set.seed(101)
+metric3B_dt<-select(metric3B,EntryTiming, cwrH, ReservoirH, Initial_weight, strategy)
+metric3B_dt2<-filter(metric3B_dt, strategy =="winner")
+#train=sample(1:nrow(metric3B), 200)
+
+metric3B_dt2.pred = predict(prune.thermal, metric3B_dt2, type="class")
+metric3B_dt2$tree.pred <- as.factor(metric3B_dt2.pred)
+```
+
+
+```{r compare predicted clusters}
+summary(metric3A_clust_win$tree.pred)
+summary(metric3B_dt2$tree.pred)
+```
+A
+ 1  2  3  4  5  6 
+76 19 49 58 89 90 
+
+B
+1   2   3   4   5   6 
+47  28  82 110  67  48
+
+
+Plot for each cluster 3-D plot of weight, entry time, reservoirH by scenario 1 or 2
+```{r 3D plot}
+metric3A_clust_win$scenario<-"A"
+metric3B_dt2$scenario<-"B"
+metric3A_clust_win2 <- select(metric3A_clust_win, -cluster)
+metric3B_dt2<-select(metric3B_dt2, -strategy)
+metric3A_3B_wPred<-rbind.data.frame(metric3A_clust_win2, metric3B_dt2)
+metric3A_3B_wPred$scenario<-as.factor(metric3A_3B_wPred$scenario)
+
+#train=sample(1:nrow(metric3A_3B_wPred), 400)
+#asample<-metric3A_metric3B_subset_f[train,]
+
+cluster1<-filter(metric3A_3B_wPred, scenario=="A")
+
+plot_ly(data=cluster1,x=cluster1$EntryTiming, y=cluster1$Initial_weight, z=cluster1$ReservoirH, type="scatter3d", mode="markers", size=11,  color=cluster1$tree.pred, colors = c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48", "black")) %>%
+  layout(
+    title = "clusters 1-4 for scenario 1 winners",
+    scene = list(
+      xaxis = list(title = "Entry Timing"),
+      yaxis = list(title = "Initial weight (g)"),
+      zaxis = list(title = "Reservoir (h)")
+    ))
+```
+
+Plot boxplot for each variable per cluster 
+```{r boxplot A and B}
+A<-filter(metric3A_3B_wPred, scenario == "A")
+A2<-select(A,  -scenario, -cwrH)
+A3<-tidyr::gather(A2, metric, value, EntryTiming:Initial_weight, factor_key = TRUE)
+
+# I LIKE THIS PLOT MAKE FANCY FOR PAPER ALONG WITH THERMAL EXPOSURE VISUAL
+# for just scenario A 
+# fix facet labels
+vars.renames<-c("EntryTiming" ="Entry Timing", 
+                "Initial_weight"= "Initial Weight (g)",
+                "ReservoirH" = "Reservoir (h)")
+
+
+group1<-ggplot(A3, aes(x=tree.pred, y=value, fill=tree.pred)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free', labeller = as_labeller(vars.renames)) +
+  xlab("Migration strategy") + ylab(" ") + 
+  theme_classic(base_size=20) + theme(legend.position = "none") +
+  scale_fill_manual(values=c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48", "black"))
+group1
+
+# for scenario A and B
+A2<-select(metric3A_3B_wPred, -cwrH)
+A3<-tidyr::gather(A2, metric, value, EntryTiming:Initial_weight, factor_key = TRUE)
+
+# boxplot by parameter per cluster for scenario 
+ggplot(A3, aes(x=tree.pred, y=value, fill=scenario)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+plot(A2$EntryTiming~A2$Initial_weight)
+
+```
+
+
+############################################################
+# Try Cluster with EntryTiming, ReservoirH, cwrH, and Initial_weight
+
+
+```{r cluster strategies}
+metric3A_clust<-select(metric3A,EntryTiming, cwrH, ReservoirH, Initial_weight, strategy)
+metric3A_clust_win<-filter(metric3A_clust, strategy =="winner")
+set.seed(20)
+
+for_keep<-c(1:4)
+
+# determine optimal number of clusters with elbow method
+fviz_nbclust(metric3A_clust_win[,for_keep], kmeans, method = "wss") # 6
+fviz_nbclust(metric3A_clust_win[,for_keep], kmeans, method = "silhouette") # 2
+gap_stat <- clusGap(metric3A_clust_win[,for_keep], FUN = kmeans, nstart = 25,
+                    K.max = 10, B = 50) # doesn't converge
+# visualize gap stat
+fviz_gap_stat(gap_stat)
+
+# cluster
+clusters<-kmeans(metric3A_clust_win[,for_keep], 7)
+# Save the cluster number in the dataset as column 'Borough'
+metric3A_clust_win$cluster <- as.factor(clusters$cluster)
+str(clusters)
+
+metric_all_long<-tidyr::gather(metric3A_clust_win, metric, value, EntryTiming:Initial_weight, factor_key = TRUE)
+
+ggplot(metric_all_long, aes(x=cluster, y=value)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+ggparcoord(metric3A_clust_win,
+    columns = for_keep, groupColumn = 6
+    ) 
+
+```
+
+Do a decision tree classifier on 4 clusters for scenario A winners.
+```{r decision tree classifier}
+set.seed(101)
+# drop tree.pred
+metric3A_clust_win<-select(metric3A_clust_win,  -strategy)
+train=sample(1:nrow(metric3A_clust_win), 200)
+# don't use Initial_weight
+tree.metric3A.winner = tree(cluster~., metric3A_clust_win, subset=train)
+# plot training tree
+plot(tree.metric3A.winner)
+text(tree.metric3A.winner, pretty=0)
+
+tree.pred = predict(tree.metric3A.winner, metric3A_clust_win[-train,], type="class")
+with(metric3A_clust_win[-train,], table(tree.pred, cluster)) # %82 accuracy
+
+# prune?
+# prune
+cv.thermal = cv.tree(tree.metric3A.winner, FUN = prune.misclass)
+cv.thermal
+plot(cv.thermal)
+
+# redo
+prune.thermal = prune.misclass(tree.metric3A.winner, best = 6)
+plot(prune.thermal)
+text(prune.thermal, pretty=0)
+
+# re-evaluate
+tree.pred = predict(prune.thermal, metric3A_clust_win[-train,], type="class")
+with(metric3A_clust_win[-train,], table(tree.pred, cluster)) # 85% accuracy
+
+# apply to whole dataset for join
+tree.pred.all = predict(prune.thermal, metric3A_clust_win, type="class")
+
+# add factor to dataframe
+metric3A_clust_win$tree.pred<-as.factor(tree.pred.all)
+
+```
+
+
+```{r}
+set.seed(101)
+metric3B_dt<-select(metric3B,EntryTiming, cwrH, ReservoirH, Initial_weight, strategy)
+metric3B_dt2<-filter(metric3B_dt, strategy =="winner")
+#train=sample(1:nrow(metric3B), 200)
+
+metric3B_dt2.pred = predict(prune.thermal, metric3B_dt2, type="class")
+metric3B_dt2$tree.pred <- as.factor(metric3B_dt2.pred)
+```
+
+
+```{r compare predicted clusters}
+summary(metric3A_clust_win$tree.pred)
+summary(metric3B_dt2$tree.pred)
+```
+
+Plot boxplot for each variable per cluster 
+```{r boxplot A and B}
+A<-filter(metric3A_3B_wPred, scenario == "A")
+A2<-select(A,  -scenario, )
+A3<-tidyr::gather(A2, metric, value, EntryTiming:Initial_weight, factor_key = TRUE)
+
+# I LIKE THIS PLOT MAKE FANCY FOR PAPER ALONG WITH THERMAL EXPOSURE VISUAL
+# for just scenario A 
+# fix facet labels
+vars.renames<-c("EntryTiming" ="Entry Timing", 
+                "Initial_weight"= "Initial Weight (g)",
+                "ReservoirH" = "Reservoir (h)", 
+                "cwrH" = "Cold Water Refuge (h)")
+
+
+group1<-ggplot(A3, aes(x=tree.pred, y=value, fill=tree.pred)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free', labeller = as_labeller(vars.renames)) +
+  xlab("Migration strategy") + ylab(" ") + 
+  theme_classic(base_size=20) + theme(legend.position = "none") +
+  scale_fill_manual(values=c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48", "black", "yellow"))
+group1
+
+# for scenario A and B
+A2<-select(metric3A_3B_wPred, -cwrH)
+A3<-tidyr::gather(A2, metric, value, EntryTiming:Initial_weight, factor_key = TRUE)
+
+# boxplot by parameter per cluster for scenario 
+ggplot(A3, aes(x=tree.pred, y=value, fill=scenario)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+plot(A2$EntryTiming~A2$Initial_weight)
+
+```
+
+
+############## END DTREE w/ 4 vars #########################
+
+```{r plot entry time reservoirH and weight for winners scenario1 and scenario2}
+metric3B$refuge_use<-ifelse(metric3B$Total_hours_cold_water > 6, "yes", "no")
+
+metric3A_metric3B <- rbind.data.frame(metric3A, metric3B)
+
+metric3A_metric3B_subset<-select(metric3A_metric3B,ID, EntryTiming, cwrH, ReservoirH,Initial_weight,  strategy, scenario)
+
+metric3A_metric3B_subset_f<-filter(metric3A_metric3B_subset, strategy == "winner")
+
+#metric3A_metric3B_subset_f_long<-tidyr::gather(metric3A_metric3B_subset_f, metric, value, EntryTiming:strategy, factor_key = TRUE)
+
+train=sample(1:nrow(metric3A_metric3B_subset_f), 400)
+asample<-metric3A_metric3B_subset_f[train,]
+plot_ly(data=asample,x=asample$Initial_weight, y=asample$EntryTiming, z=asample$ReservoirH, type="scatter3d", mode="markers", color=asample$scenario) %>%
+  layout(
+    title = "Winners for scenario 1 and 3",
+    scene = list(
+      xaxis = list(title = "Initial weight"),
+      yaxis = list(title = "Entry Timing"),
+      zaxis = list(title = "Reservoir Hours")
+    ))
+```
+
+
+```{r plot in variable space}
+metric3A4plot<-select(metric3A,ID, EntryTiming, cwrH, ReservoirH,Initial_weight,  strategy)
+
+metric3A4plot_long<-tidyr::gather(metric3A4plot, metric, value, EntryTiming:Initial_weight, factor_key = TRUE)
+
+ggplot(data=metric3A4plot, aes(x=ReservoirH, y=EntryTiming, color=strategy)) +geom_point()
+
+
+train=sample(1:nrow(metric3A4plot), 200)
+asample<-metric3A4plot[train,]
+plot_ly(data=asample,x=asample$ReservoirH, y=asample$EntryTiming, z=asample$cwrH, type="scatter3d", mode="markers", color=asample$strategy) %>%
+  layout(
+    title = "Sample of winners and losers",
+    scene = list(
+      xaxis = list(title = "Reservoir Hours"),
+      yaxis = list(title = "Entry Timing"),
+      zaxis = list(title = "CWR Hours")
+    ))
+
+
+# do 3d plot weight for winners categorized as refuge users or no, w reservoir hrs, entry timing, and initial weight
+winners<-filter(metric3A4plot, strategy == "winner")
+winners$refuge_use<-ifelse(winners$cwrH > 6, "yes", "no")
+
+train=sample(1:nrow(winners), 200)
+asample<-winners[train,]
+
+plot_ly(data=asample,x=asample$ReservoirH, y=asample$EntryTiming, z=asample$Initial_weight, type="scatter3d", mode="markers", color=asample$cwrH) %>%
+  layout(
+    title = "Sample of winners",
+    scene = list(
+      xaxis = list(title = "Reservoir Hours"),
+      yaxis = list(title = "Entry Timing"),
+      zaxis = list(title = "Initial weight")
+    ))
+
+# do 2d plot of entry timing vs CWR hours colored by winners and losers
+train=sample(1:nrow(metric3A4plot), 1750)
+asample<-metric3A4plot[train,]
+ggplot(data=asample, aes(x=EntryTiming, y=cwrH, color=strategy, size=ReservoirH/Initial_weight)) + geom_point()
+
 ```
 
 

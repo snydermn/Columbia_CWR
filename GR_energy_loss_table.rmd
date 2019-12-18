@@ -1,0 +1,99 @@
+---
+title: "GR_energy_loss_table"
+author: "MNSnyder"
+date: "12/11/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Imports end condition data probe for Grande Ronde summer steelhead modeled fish for four scenarios:
+
+* Columbia River 2017 - A
+* Columbia River 2017, no CWRs - B
+* Columbia River 2017 plus 1 - C
+* Columbia River 2017 plus 1, no CWRs - D
+
+1. calculates % energy lost per individual
+2. calculates quantiles of energy lost
+3. calculates number of fish using CWR and not using CWR for fish using less than 25% of energy (25 percentile of energy loss for scenario A)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(StreamThermal)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(lubridate)
+library(dplyr)
+
+```
+
+```{r import end condition data, eval=TRUE}
+# import in combined replicate DFs
+A_end<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+B_end<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+C_end<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
+D_end<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(A_end)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(B_end)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(C_end)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(D_end)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+```
+
+
+```{r calculate percent energy lost}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+# apply function to get % energy loss
+A_energy<-avail_energy_diff(A_end)
+B_energy<-avail_energy_diff(B_end)
+C_energy<-avail_energy_diff(C_end)
+D_energy<-avail_energy_diff(D_end)
+
+quantile(A_energy$ED_per_used, c(0.50, 0.6, 0.7, 0.8, 0.9))
+quantile(B_energy$ED_per_used, c(0.50, 0.6, 0.7, 0.8, 0.9))
+quantile(C_energy$ED_per_used, c(0.50, 0.6, 0.7, 0.8, 0.9))
+quantile(D_energy$ED_per_used, c(0.50, 0.6, 0.7, 0.8, 0.9))
+
+
+count_cwr_fish<- function(DF){
+DF$refuge_use<-ifelse(DF$Total_hours_cold_water > 4, 1, 0)
+DF$refuge_use<-as.factor(DF$refuge_use)
+
+DF %>% 
+  group_by(refuge_use) %>%
+filter(ED_per_used < 25) %>%
+  count()
+
+}
+
+A_stats<-count_cwr_fish(A_energy)
+B_stats<-count_cwr_fish(B_energy)
+C_stats<-count_cwr_fish(C_energy)
+D_stats<-count_cwr_fish(D_energy)
+
+A_stats
+B_stats
+C_stats
+D_stats
+
+```
+
+In scenario A, 52% of the individuals using < 25% of their energy use CWR, in scenario C, or under future Columbia River temperature, 42% of individuals use CWRs. 
+
+

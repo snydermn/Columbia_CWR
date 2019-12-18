@@ -1,0 +1,275 @@
+---
+title: "classify migration strategies"
+author: "MNSnyder"
+date: "12/9/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(StreamThermal)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(lubridate)
+library(dplyr)
+library(rpart)
+library(party)
+library(tree)
+library(randomForest)
+library(rpart.plot)
+```
+
+
+```{r}
+thermal_regime_params <- read_csv("D:/Results_4Populations/gr_Columbia2017B/combined/thermal_regime_params.csv", 
+col_types = cols(Date_DMaxT = col_date(format = "%Y-%m-%d"), 
+Date_DMeanT = col_date(format = "%Y-%m-%d"), 
+Date_DMinT = col_date(format = "%Y-%m-%d"), 
+EntryDate = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
+ExitDate = col_datetime(format = "%Y-%m-%d %H:%M:%S")))
+
+#thermal_regime_params<-thermal_regime_params[,-1]
+```
+
+
+
+
+```{r categorize energy loss}
+thermal_regime_params$category<-ifelse(thermal_regime_params$ED_per_used > 32.85, "Energy conserving", ifelse(thermal_regime_params$ED_per_used < 25.00,  "Energy non-Conserving", "neutral"))
+
+thermal_regime_params$category <- as.factor (thermal_regime_params$category)
+
+# drop some attributes
+thermal<-select(thermal_regime_params,-X1, -ED_per_used, -MeanCWRtemp, -energy_lost_gamete, -Fitness_energy, -gamete, -initial_ED_avail, -Total_hours_cold_water, -Time_entry.y, -RC, -ID, -Fitness_energy_density, -Fitness_weight, -Initial_energy_density, -Run, -Step, -Population, -Time_exit, -Time_in_system, -Time_remaining)
+
+# drop dates
+thermal2<-select(thermal, -ExitDate, -EntryDate, -Date_DMinT, -Date_DMaxT, -Date_DMeanT)
+
+tree.thermal = tree(category~., thermal2, subset=train)
+#thermal<-select(thermal_regime_params, ReservoirH,  FmaxCT, F_cold, category, Time_entry.x, peak_temp_diff)
+```
+
+
+```{r}
+thermal3<-select(thermal2, category, cwrH, F_cold, peak_temp_diff, Initial_weight, MeanColumbiatemp )
+```
+
+
+```{r classify winners only}
+
+thermal_regime_params <- read_csv("D:/Results_4Populations/gr_Columbia2017B/combined/thermal_regime_params.csv", 
+col_types = cols(Date_DMaxT = col_date(format = "%Y-%m-%d"), 
+Date_DMeanT = col_date(format = "%Y-%m-%d"), 
+Date_DMinT = col_date(format = "%Y-%m-%d"), 
+EntryDate = col_datetime(format = "%Y-%m-%d %H:%M:%S"), 
+ExitDate = col_datetime(format = "%Y-%m-%d %H:%M:%S")))
+
+# drop some attributes
+thermal<-select(thermal_regime_params,-X1, -energy_lost_gamete, -Fitness_energy, -gamete, -initial_ED_avail,  -Time_entry.y, -RC, -ID, -Fitness_energy_density, -Fitness_weight, -Initial_energy_density, -Run, -Step, -Population, -Time_exit, -Time_in_system, -Time_remaining)
+
+# drop dates
+thermal2<-select(thermal, -ExitDate, -EntryDate, -Date_DMinT, -Date_DMaxT, -Date_DMeanT)
+
+winners<-filter(thermal2, ED_per_used >40 | ED_per_used < 17)
+
+
+set.seed(101)
+
+# training data tree
+train=sample(1:nrow(winners), 200)
+tree.thermal = tree(ED_per_used~., winners, subset=train)
+plot(tree.thermal)
+text(tree.thermal, pretty=0)
+```
+
+
+```{r}
+library(GGally)
+data <- iris
+
+data %>% 
+  ggparcoord(
+    columns = 1:4, groupColumn = 5, order = "anyClass",
+    showPoints = TRUE, 
+    title = "Parallel Coordinate Plot for the Iris Data",
+    alphaLines = 0.3
+    ) + 
+  scale_color_viridis(discrete=TRUE) 
+
+winners$cwr_use<-ifelse(winners$Total_hours_cold_water > 0, 'used CWR', 'no CWR')
+winners$cwr_use<-as.factor(winners$cwr_use)
+
+winners_parallel<-select(winners, ReservoirH, hydroH, cwrH, Time_entry.x, Initial_weight, MeanColumbiatemp, cwr_use )
+
+data <- winners_parallel
+
+data %>% 
+  ggparcoord(
+    columns = 1:6, groupColumn = 7, order = "anyClass",
+    showPoints = TRUE, 
+    title = "Parallel Coordinate Plot for GR winners",
+    alphaLines = 0.3
+    ) + 
+  scale_color_viridis(discrete=TRUE) 
+
+```
+
+
+```{r}
+set.seed(101)
+
+# training data tree
+train=sample(1:nrow(thermal3), 4500)
+tree.thermal = tree(category~., thermal3, subset=train)
+plot(tree.thermal)
+text(tree.thermal, pretty=0)
+
+tree.pred = predict(tree.thermal, thermal3[-train,], type="class")
+with(thermal3[-train,], table(tree.pred, category))
+
+# prune
+cv.thermal = cv.tree(tree.thermal, FUN = prune.misclass)
+cv.thermal
+plot(cv.thermal)
+# redo
+prune.thermal = prune.misclass(tree.thermal, best = 9)
+plot(prune.thermal)
+text(prune.thermal, pretty=0)
+# re-evaluate
+tree.pred = predict(prune.thermal, thermal3[-train,], type="class")
+with(thermal3[-train,], table(tree.pred, category))
+```
+
+
+```{r classification tree }
+set.seed(101)
+
+# training data tree
+train=sample(1:nrow(thermal), 4500)
+tree.thermal = tree(category~., thermal2, subset=train)
+plot(tree.thermal)
+text(tree.thermal, pretty=0)
+
+tree.pred = predict(tree.thermal, thermal[-train,], type="class")
+with(thermal[-train,], table(tree.pred, category))
+
+# prune
+cv.thermal = cv.tree(tree.thermal, FUN = prune.misclass)
+cv.thermal
+plot(cv.thermal)
+# redo
+prune.thermal = prune.misclass(tree.thermal, best = 9)
+plot(prune.thermal)
+text(prune.thermal, pretty=0)
+# re-evaluate
+tree.pred = predict(prune.thermal, thermal[-train,], type="class")
+with(thermal[-train,], table(tree.pred, category))
+
+
+
+
+tree.thermal = rpart(category~., thermal)
+
+rpart.plot(tree.thermal, cex=0.5)
+?rpart.plot
+
+```
+
+
+```{r random forest classification tree}
+set.seed(101)
+train <- sample(1:nrow(thermal), 4000)
+
+rf.thermal<-randomForest(category~., data=thermal, subset=train)
+plot(rf.thermal)
+
+
+oob.err = double(13)
+test.err = double(13)
+for(mtry in 1:13){
+  fit = randomForest(medv~., data = boston, subset=train, mtry=mtry, ntree = 350)
+  oob.err[mtry] = fit$mse[350]
+  pred = predict(fit, boston[-train,])
+  test.err[mtry] = with(boston[-train,], mean( (medv-pred)^2 ))
+}
+```
+
+
+```{r}
+tree1<-tree(category~.-ED_per_used -MeanCWRtemp -energy_lost_gamete -Fitness_energy, data=thermal_regime_params)
+summary(tree1)
+plot(tree1)
+text(tree1, pretty=0)
+
+
+set.seed(101)
+train=sample(1:nrow(thermal_regime_params), 3500)
+
+tree2<-tree(category~.-ED_per_used -MeanCWRtemp -energy_lost_gamete -Fitness_energy,data=thermal_regime_params, subset=train)
+summary(tree2)
+plot(tree2)
+text(tree2, pretty=0)
+
+tree.pred = predict(tree2, thermal_regime_params[-train,], type="class")
+
+
+with(thermal_regime_params[-train,], table(tree.pred, category)) # %75 accuracy
+
+cv.tree = cv.tree(tree2, FUN = prune.misclass)
+plot(cv.tree)
+prune.tree2 = prune.misclass(tree2, best = 10)
+plot(prune.tree2)
+text(prune.tree2, pretty=0)
+
+tree.pred = predict(prune.tree2, thermal_regime_params[-train,], type="class")
+with(thermal_regime_params[-train,], table(tree.pred, category))
+
+```
+
+
+```{r}
+fit3 <- rpart(category ~ DD +  Total_hours_cold_water + peak_temp_diff ,
+   method="class", data=thermal_regime_params)
+
+plot(fit3)
+text(fit3, use.n=TRUE, all=TRUE, cex=.5)
+
+post(fit3, file = "d:/Temp/temp3.ps",
+   title = "Classification Tree")
+
+fit2 <- ctree(category ~ MeanColumbiatemp + DD + peak_temp_diff + Total_hours_cold_water + Initial_weight ,
+  data=thermal_regime_params)
+plot(fit2, uniform=TRUE)
+```
+
+
+```{r}
+fit <- rpart(ED_per_used ~ MeanColumbiatemp + DD + peak_temp_diff + Total_hours_cold_water + Initial_weight + Date_DMaxT,
+   method="anova", data=thermal_regime_params)
+
+printcp(fit) # display the results 
+plotcp(fit)
+summary(fit) # detailed summary of splits
+
+# plot tree
+plot(fit, uniform=TRUE,
+   main="Classification Tree")
+text(fit, use.n=TRUE, all=TRUE, cex=.5)
+
+# create attractive postscript plot of tree
+post(fit, file = "d:/Temp/temp.ps",
+   title = "Classification Tree for Kyphosis")
+
+```
+
+```{r}
+fit2 <- ctree(ED_per_used ~ MeanColumbiatemp + DD + peak_temp_diff + Total_hours_cold_water + Initial_weight ,
+  data=thermal_regime_params)
+plot(fit2, uniform=TRUE)
+```
+
