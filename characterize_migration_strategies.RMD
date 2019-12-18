@@ -25,7 +25,51 @@ library(factoextra) # clustering algorithms & visualization
 library(rpart)
 library(rpart.plot)
 library(partykit)
+library(doBy) # statistical summary function
 ```
+
+###################################
+Statistical Summary function
+
+```{r statistical summary function}
+## Summarizes data.
+## Gives count, mean, standard deviation, standard error of the mean, and confidence 
+## interval (default 95%).
+##   data: a data frame.
+##   measurevar: the name of a column that contains the variable to be summariezed
+##   groupvars: a vector containing names of columns that contain grouping variables
+##   na.rm: a boolean that indicates whether to ignore NA's
+##   conf.interval: the percent range of the confidence interval (default is 95%)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE, conf.interval=.95) {
+    library(doBy)
+
+    # New version of length which can handle NA's: if na.rm==T, don't count them
+    length2 <- function (x, na.rm=FALSE) {
+        if (na.rm) sum(!is.na(x))
+        else       length(x)
+    }
+
+    # Collapse the data
+    formula <- as.formula(paste(measurevar, paste(groupvars, collapse=" + "), sep=" ~ "))
+    datac <- summaryBy(formula, data=data, FUN=c(length2,mean,sd), na.rm=na.rm)
+
+    # Rename columns
+    names(datac)[ names(datac) == paste(measurevar, ".mean",    sep="") ] <- measurevar
+    names(datac)[ names(datac) == paste(measurevar, ".sd",      sep="") ] <- "sd"
+    names(datac)[ names(datac) == paste(measurevar, ".length2", sep="") ] <- "N"
+    
+    datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+    
+    # Confidence interval multiplier for standard error
+    # Calculate t-statistic for confidence interval: 
+    # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+    ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+    datac$ci <- datac$se * ciMult
+    
+    return(datac)
+}
+```
+
 
 ################################
 Import fish data
@@ -978,6 +1022,251 @@ ggplot(A3, aes(x=tree.pred, y=value, fill=scenario)) + geom_boxplot() +
 
 
 
+```
+
+##################################################### 
+# Cluster with EntryTiming, cwrH
+# RPart tree
+# YAY
+
+```{r cluster strategies}
+metric3A_clust<-select(metric3A,EntryTiming, cwrH, ReservoirH, Initial_weight, strategy)
+metric3A_clust_win<-filter(metric3A_clust, strategy =="winner")
+set.seed(20)
+
+for_keep<-c(1:2)
+# determine optimal number of clusters with elbow method
+fviz_nbclust(metric3A_clust_win[,for_keep], kmeans, method = "wss") # 4 or 5
+fviz_nbclust(metric3A_clust_win[,for_keep], kmeans, method = "silhouette") # 2
+gap_stat <- clusGap(metric3A_clust_win[,for_keep], FUN = kmeans, nstart = 25,
+                    K.max = 10, B = 50)
+# visualize gap stat
+fviz_gap_stat(gap_stat)
+
+# cluster
+clusters<-kmeans(metric3A_clust_win[,for_keep], 5)
+# Save the cluster number in the dataset as column 'Borough'
+metric3A_clust_win$cluster <- as.factor(clusters$cluster)
+#str(clusters)
+
+metric_all_long<-tidyr::gather(metric3A_clust_win, metric, value, EntryTiming:cwrH, factor_key = TRUE)
+
+ggplot(metric_all_long, aes(x=cluster, y=value)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free')
+
+ggparcoord(metric3A_clust_win,
+    columns = for_keep, groupColumn = 6
+    ) 
+
+plot(EntryTiming~cwrH, col=cluster, data=metric3A_clust_win)
+
+ggplot(metric3A_clust_win, aes(x=cwrH, y=EntryTiming, color=cluster)) + geom_point(alpha=0.75, size=4) +
+  xlab("Cold Water Refuge (h)") + ylab("Entry Timing") + 
+  theme_classic(base_size = 20) +
+  scale_colour_manual(values = c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"))
+
+```
+
+Do a decision RPART tree classifier on 4 clusters for scenario A winners.
+```{r decision tree classifier}
+set.seed(101)
+# drop tree.pred
+metric3A_clust_win<-select(metric3A_clust_win, -strategy)
+train=sample(1:nrow(metric3A_clust_win), 100)
+train.set<-metric3A_clust_win[-train,]
+test.set<-metric3A_clust_win[train,]
+# don't use Initial_weight
+rpart.tree<-rpart::rpart(cluster ~ EntryTiming + cwrH , method="class", data = train.set)
+
+# plot unpruned training tree
+printcp(rpart.tree) # display the results
+plotcp(rpart.tree) # visualize cross-validation results
+summary(rpart.tree) # detailed summary of splits
+plot(rpart.tree, uniform=TRUE,
+   main="Classification RTree")
+text(rpart.tree, use.n=TRUE, all=TRUE, cex=.8)
+prp(rpart.tree, faclen = 0, cex = 0.8, extra = 1)
+
+# look at error rate for unpruned tree
+predictions <- predict(rpart.tree, test.set, type="class")
+table(test.set$cluster, predictions) # %94
+
+# prune tree
+prune.rpart.tree <- prune(rpart.tree, cp=0.02) # pruning the tree
+plot(prune.rpart.tree, uniform=TRUE, branch=0.6)
+text(prune.rpart.tree, all=TRUE, use.n=TRUE)
+
+# try to plot with party
+rparty.tree <- as.party(rpart.tree)
+rparty.tree
+
+plot(rparty.tree)
+
+# apply to whole dataset for join
+tree.pred.all = predict(rpart.tree, metric3A_clust_win, type="class")
+
+# add factor to dataframe
+metric3A_clust_win$tree.pred<-as.factor(tree.pred.all)
+
+```
+
+Use scenario1 winner decision tree cluster to classify scenario 2
+```{r}
+set.seed(101)
+metric3B_dt<-select(metric3B,EntryTiming, cwrH, ReservoirH, Initial_weight, strategy)
+metric3B_dt2<-filter(metric3B_dt, strategy =="winner")
+#train=sample(1:nrow(metric3B), 200)
+
+metric3B_dt2.pred = predict(prune.thermal, metric3B_dt2, type="class")
+metric3B_dt2$tree.pred <- as.factor(metric3B_dt2.pred)
+```
+
+
+```{r compare predicted clusters}
+summary(metric3A_clust_win$tree.pred)
+summary(metric3B_dt2$tree.pred)
+```
+
+Plot boxplot for each variable per cluster 
+```{r}
+
+A<-select(metric3A_clust_win, EntryTiming, cwrH, tree.pred)
+A3<-tidyr::gather(A, metric, value, EntryTiming:cwrH, factor_key = TRUE)
+
+# I LIKE THIS PLOT MAKE FANCY FOR PAPER ALONG WITH THERMAL EXPOSURE VISUAL
+# for just scenario A 
+# fix facet labels
+vars.renames<-c("EntryTiming" ="Entry Timing", 
+                "cwrH"= "Cold Water Refuge (h)")
+
+
+group1<-ggplot(A3, aes(x=tree.pred, y=value, fill=tree.pred)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free', labeller = as_labeller(vars.renames)) +
+  xlab("Migration strategy") + ylab(" ") + 
+  theme_classic(base_size=20) + theme(legend.position = "none") +
+  scale_fill_manual(values=c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"))
+group1
+
+# for scenario A and B
+# A2<-select(metric3A_3B_wPred, -strategy, -Initial_weight)
+# A3<-tidyr::gather(A2, metric, value, EntryTiming:ReservoirH, factor_key = TRUE)
+
+# boxplot by parameter per cluster for scenario 
+# ggplot(A3, aes(x=tree.pred, y=value, fill=scenario)) + geom_boxplot() +
+#  facet_wrap(~metric, scales='free')
+
+
+
+```
+
+```{r compare weight reservoir times between clusters and scenarios}
+# columns for keep
+A1<-select(metric3A_clust_win, ReservoirH, Initial_weight, tree.pred) 
+B1<-select(metric3B_dt2, ReservoirH, Initial_weight, tree.pred)
+
+# create ratio
+A1$weight_time_ratio<-A1$Initial_weight / A1$ReservoirH
+B1$weight_time_ratio<-B1$Initial_weight / B1$ReservoirH
+
+# add scenario column
+A1$scenario <- "A"
+B1$scenario <- "B"
+# combine A and B scenarios
+A1_B1<-rbind.data.frame(A1, B1)
+
+# convert from wide to long
+vars<-c("ReservoirH", "Initial_weight", "weight_time_ratio")
+A1_B1_long<-tidyr::gather(A1_B1, metric, value, vars, factor_key = TRUE)
+
+# I LIKE THIS PLOT MAKE FANCY FOR PAPER ALONG WITH THERMAL EXPOSURE VISUAL
+# for just scenario A 
+# fix facet labels
+#vars.renames<-c("EntryTiming" ="Entry Timing", 
+#                "cwrH"= "Cold Water Refuge (h)")
+
+
+group1<-ggplot(A1_B1_long, aes(x=tree.pred, y=value, fill=scenario)) + geom_boxplot() +
+  facet_wrap(~metric, scales='free') +
+  xlab("Migration strategy") + ylab(" ") + 
+  theme_classic(base_size=20) + theme(legend.position = "none") +
+  scale_fill_manual(values=c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"))
+group1
+
+```
+
+
+```{r summary stat for plot}
+# speed by cluster
+summary_speed<-summarySE(A1_B1, measurevar = "ReservoirH", groupvars = c("tree.pred", "scenario"))
+
+# The errorbars overlapped, so use position_dodge to move them horizontally
+pd <- position_dodge(0.1) # move them .05 to the left and right
+
+
+ggplot(summary_speed, aes(x=tree.pred, y=ReservoirH, colour=scenario, fill=scenario)) +
+  geom_errorbar(aes(ymin=ReservoirH - ci, ymax=ReservoirH + ci), width = 0.1, position=pd) +
+  geom_point(position=pd) + 
+  xlab("Migration Strategy") + ylab("Reservoir (h)")+
+ scale_color_manual(breaks=c("A", "B"), values=c("red", "blue"))+
+  theme_classic(base_size=20) + 
+  theme(legend.position = "none")
+
+    
+  
+
+# weight by cluster  
+summary_weight <- summarySE(A1_B1, measurevar = "Initial_weight", groupvars = c("tree.pred", "scenario"))
+
+ggplot(summary_weight, aes(x=tree.pred, y=Initial_weight, colour=scenario, fill=scenario)) +
+  geom_errorbar(aes(ymin=Initial_weight - ci, ymax=Initial_weight + ci), width = 0.1, position=pd) +    geom_point(position=pd) + 
+  theme_classic() 
+
+# speed by scenario
+summary_speed_s<-summarySE(A1_B1, measurevar = "ReservoirH", groupvars = c("scenario"))
+
+ggplot(summary_speed_s, aes(x=scenario, y=ReservoirH, colour=scenario, fill=scenario)) +
+  geom_errorbar(aes(ymin=ReservoirH - ci, ymax=ReservoirH + ci), width = 0.1, position=pd) +    geom_point(position=pd) + 
+  theme_classic()
+
+# weight by scenario
+summary_weight_s <- summarySE(A1_B1, measurevar = "Initial_weight", groupvars = c( "scenario"))
+
+ggplot(summary_weight_s, aes(x=scenario, y=Initial_weight, colour=scenario, fill=scenario)) +
+  geom_errorbar(aes(ymin=Initial_weight - ci, ymax=Initial_weight + ci), width = 0.1, position=pd) +    geom_point(position=pd) + 
+  theme_classic() 
+
+# entry time by reservoir H by scenario
+A2<-select(metric3A_clust_win, EntryTiming, cwrH, ReservoirH, Initial_weight, tree.pred) 
+B2<-select(metric3B_dt2, EntryTiming, cwrH, ReservoirH, Initial_weight, tree.pred)
+
+# add scenario
+A2$scenario <- "Current thermalscape with CWRs"
+B2$scenario <- "Current thermalscape without CWRs"
+
+# combine
+C2<-rbind.data.frame(A2, B2)
+C2$scenario<-as.factor(C2$scenario)
+
+ggplot(data=C2, aes(x=EntryTiming, y=ReservoirH, colour=scenario, fill=scenario)) + 
+  geom_point()+ theme_classic(base_size=20)+
+  xlab("Entry Timing") + ylab("Reservoir (h)")+ 
+  scale_color_manual(breaks=c("Current thermalscape with CWRs", "Current thermalscape without CWRs"), values=c("red", "blue"))
+
+# same plot but without legend
+ggplot(data=C2, aes(x=EntryTiming, y=ReservoirH, colour=scenario, fill=scenario)) + 
+  geom_point()+ theme_classic(base_size=20)+
+  xlab("Entry Timing") + ylab("Reservoir (h)")+ 
+  scale_color_manual(breaks=c("Current thermalscape with CWRs", "Current thermalscape without CWRs"),    values=c("red", "blue"))+
+  theme(legend.position = "none")
+
+# make long for ggplot
+vars<-c("ReservoirH", "Initial_weight", "weight_time_ratio")
+A1_B1_long<-tidyr::gather(A1_B1, metric, value, vars, factor_key = TRUE)
+
+plot(ReservoirH ~ EntryTiming, col=scenario, data=C2)
+
+plot(Initial_weight ~ EntryTiming, col=scenario, data=C2)
+plot(Initial_weight / ReservoirH ~ EntryTiming, col=scenario, data=C2)
 ```
 
 
