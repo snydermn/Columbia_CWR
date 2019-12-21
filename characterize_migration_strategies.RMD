@@ -1247,6 +1247,51 @@ B2$scenario <- "Current thermalscape without CWRs"
 C2<-rbind.data.frame(A2, B2)
 C2$scenario<-as.factor(C2$scenario)
 
+
+# initial weight vs reservoir hours by cluster
+ggplot(data=C2, aes(x=Initial_weight, y=ReservoirH, colour=tree.pred, fill=tree.pred)) + 
+  geom_point()+ theme_classic(base_size=20)+
+  xlab("Initial weight (g)") + ylab("Reservoir (h)")+ 
+  scale_color_manual(breaks=c("1", "2", "3","4","5"), values=c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"))
+
+
+# initial weight by reservoir hr by scenario
+ggplot(data=C2, aes(x=ReservoirH, y=Initial_weight, colour=scenario, fill=scenario)) + 
+  geom_point()+ theme_classic(base_size=8)+
+  xlab("Reservoir (h)") + ylab("Initial weight (g)")+ 
+  scale_color_manual(breaks=c("Current thermalscape with CWRs", "Current thermalscape without CWRs"), values=c("red", "blue"))
+
+# initial weight vs entry timing by scenario
+ggplot(data=C2, aes(x=EntryTiming, y=Initial_weight, colour=scenario, fill=scenario)) + 
+  geom_point()+ theme_classic(base_size=8)+
+  xlab("Entry Timing") + ylab("Initial weight (g)")+ 
+  scale_color_manual(breaks=c("Current thermalscape with CWRs", "Current thermalscape without CWRs"), values=c("red", "blue"))
+
+# initial weight vs entry timing by cluster
+ggplot(data=C2, aes(x=EntryTiming, y=Initial_weight, colour=tree.pred, fill=tree.pred)) + 
+  geom_point()+ theme_classic(base_size=8)+
+  xlab("Entry Timing") + ylab("Initial weight (g)")+ 
+  scale_color_manual(breaks=c("1", "2", "3","4","5"), values=c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"))
+
+# initial weight / reservoir h vs entry timing by scenario
+ggplot(data=C2, aes(x=EntryTiming, y=Initial_weight/ReservoirH, colour=scenario, fill=scenario)) + 
+  geom_point()+ theme_classic(base_size=8)+
+  xlab("Entry Timing") + ylab("Initial weight (g) / Reservoir (h)")+ 
+  scale_color_manual(breaks=c("Current thermalscape with CWRs", "Current thermalscape without CWRs"), values=c("red", "blue"))
+
+# initial weight / reservoir h vs entry timing by cluster
+ggplot(data=C2, aes(x=EntryTiming, y=Initial_weight/ReservoirH, colour=tree.pred, fill=tree.pred)) + 
+  geom_point()+ theme_classic(base_size=8)+
+  xlab("Entry Timing") + ylab("Initial weight (g) / Reservoir (h)")+ 
+  scale_color_manual(breaks=c("1", "2", "3","4","5"), values=c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"))
+
+# entry timing vs reservoir hours by cluster
+ggplot(data=C2, aes(x=EntryTiming, y=ReservoirH, colour=tree.pred, fill=tree.pred)) + 
+  geom_point()+ theme_classic(base_size=20)+
+  xlab("Entry Timing") + ylab("Reservoir (h)")+ 
+  scale_color_manual(breaks=c("1", "2", "3","4","5"), values=c("firebrick2","darkorchid4","darkorange2","deepskyblue4","gray48"))
+
+# entry timing vs reseervoir hours by scenario
 ggplot(data=C2, aes(x=EntryTiming, y=ReservoirH, colour=scenario, fill=scenario)) + 
   geom_point()+ theme_classic(base_size=20)+
   xlab("Entry Timing") + ylab("Reservoir (h)")+ 
