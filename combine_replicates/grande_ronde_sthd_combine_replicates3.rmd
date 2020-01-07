@@ -1,5 +1,5 @@
 ---
-title: "Grande Ronde summer steelhead"
+title: "Grande Ronde summer steelhead 2017B"
 author: "MNSnyder"
 date: "9/4/2019"
 output: html_document

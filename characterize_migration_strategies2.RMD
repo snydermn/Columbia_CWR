@@ -19,7 +19,18 @@ library(dplyr)
 library(plotly)
 library(GGally)
 library(doBy) # statistical summary function
+library(stringr)
 ```
+
+Imports end condition data for combined replicates for 2 populations (Snake River Fall Chinook and Grande Ronde summer steelhead) for 4 scenarios which vary by thermalscape- 
+* Columbia 2017
+* Columbia 2017, no CWRs
+* Columbia 2017 + 1 degree
+* Columbia 2017 + 1 degree, no CWRs
+
+Creates a number of exploratory plots looking at how successful migration strategies decrease. 
+
+Ultimately used to create a faceted by scenario density plot with smoothing showing how the successful migration strategy trait spaces contracts without CWRS and with hotter Columbia River temperatures. Migration strategy is characterized by entry timing related to the date of the maximum Columbia River temperature and the migration speed of individuals outside of CWRs (reservoir hours). 
 
 
 ###################################
@@ -67,7 +78,7 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE, conf.i
 #################################
 Import end condition data for 4 scenarios
 
-```{r import end condition data, eval=TRUE}
+```{r GR import end condition data, eval=TRUE}
 # import in combined replicate DFs
 A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
 B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
@@ -81,6 +92,21 @@ names(C13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Tim
 names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
 
 ```
+
+```{r SR import end condition data, eval=TRUE}
+# import in combined replicate DFs
+E4<-read.table("D:/Results_4Populations/snake_Columbia2017B/combined/E4.csv", header=TRUE, sep=",")
+F4<-read.table("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F4.csv", header=TRUE, sep=",")
+G4<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G4.csv", header=TRUE, sep=",")
+H4<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H4.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(E4)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(F4)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(G4)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(H4)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+```
+
 
 #######################################
 Import temperature data
@@ -101,6 +127,8 @@ colnames(bonn_temp2)<-"bonn_temp" # change column name
 timestep<-seq(from=1,to=dim(bonn_temp2)[1],by=1) # create sequence for number of hours of temp
 #timestep<-seq(from=1, to=2928, by=1)
 temp<-cbind.data.frame(bonn_temp2, timestep)
+# convert from factor to numeric
+temp$bonn_temp <- as.numeric(as.character(temp$bonn_temp))
 plot(bonn_temp2~timestep, data=temp, ylab="Bonneville Temperature", xlab=c("Model hour"))
 ```
 
@@ -185,7 +213,7 @@ calculate_metrics <- function(DF, temp_data){
 ```
 
 
-```{r calculate metrics}
+```{r GR calculate metrics}
 
 A_end <- calculate_metrics(A13, temp)
 A_end$scenario <- "Current with CWRs"
@@ -209,7 +237,32 @@ abcd_win<-filter(abcd_end, ED_per_used < 25)
 ```
 
 
-```{r exploratory plots}
+```{r SR calculate metrics}
+
+E_end <- calculate_metrics(E4, temp)
+E_end$scenario <- "Current with CWRs"
+
+F_end <- calculate_metrics(F4, temp)
+F_end$scenario <- "Current without CWRs"
+
+G_end <- calculate_metrics(G4, temp)
+G_end$scenario <- "Future with CWRs"
+
+H_end <- calculate_metrics(H4, temp)
+H_end$scenario <- "Future without CWRs"
+
+# combine all scenarios
+efgh_end<-rbind.data.frame(E_end, F_end, G_end, H_end)
+# convert scenario to factor
+efgh_end$scenario <- as.factor(efgh_end$scenario)
+
+# create winners
+# 25% quantile = 17.1% energy lost
+
+efgh_win<-filter(efgh_end, ED_per_used < 17)
+```
+
+```{r GR exploratory plots}
 
 # entry timing vs. reservoir hours by scenario
 ggplot(data=abcd_win, aes(x=EntryTiming, y=ReservoirH, colour=scenario, fill=scenario)) + 
@@ -236,7 +289,33 @@ ggplot(summary_speed, aes(x=scenario, y=ReservoirH, colour=scenario, fill=scenar
 ```
 
 
-```{r}
+```{r SR exploratory plots}
+
+# entry timing vs. reservoir hours by scenario
+ggplot(data=efgh_win, aes(x=EntryTiming, y=ReservoirH, colour=scenario, fill=scenario)) + 
+  geom_point()+ theme_classic(base_size=10)+
+  xlab("Entry Timing") + ylab("Reservoir (h)")+ 
+  scale_color_manual(breaks=c("Current with CWRs", "Current without CWRs", "Future with CWRs", "Future without CWRs"), values=c("lightblue",  "red", "darkblue", "yellow"))
+
+# speed by cluster
+summary_speed_SR<-summarySE(efgh_win, measurevar = "ReservoirH", groupvars = c("scenario"))
+
+# The errorbars overlapped, so use position_dodge to move them horizontally
+pd <- position_dodge(0.1) # move them .05 to the left and right
+
+
+ggplot(summary_speed_SR, aes(x=scenario, y=ReservoirH, colour=scenario, fill=scenario)) +
+  geom_errorbar(aes(ymin=ReservoirH - ci, ymax=ReservoirH + ci), width = 0.1, position=pd) +
+  geom_point(position=pd) + 
+  xlab("Migration Strategy") + ylab("Reservoir (h)")+
+ scale_color_manual(breaks=c("Current with CWRs", "Current without CWRs", "Future with CWRs", "Future without CWRs"), values=c("lightblue",  "red", "darkblue", "yellow"))+
+  theme_classic(base_size=20) + 
+  theme(legend.position = "none")
+
+
+```
+
+```{r GR exploratory plots 2}
 
 abcd_win$EntryTiming_c<-ifelse(abcd_win$EntryTiming < -400, "A", ifelse(abcd_win$EntryTiming > -50, "C", "B"))
 
@@ -267,8 +346,37 @@ ggplot(summary_speed, aes(x=EntryTiming_c, y=ReservoirH, colour=scenario, fill=s
 ```
 
 
+```{r SR exploratory plots 2}
 
-```{r}
+efgh_win$EntryTiming_c<-ifelse(efgh_win$EntryTiming < -400, "A", ifelse(efgh_win$EntryTiming > -50, "C", "B"))
+
+#aggregate(ReservoirH~EntryTiming_c + scenario, data=abcd_win, mean)
+
+
+# speed by cluster
+summary_speed_SR<-summarySE(efgh_win, measurevar = "ReservoirH", groupvars = c("EntryTiming_c", "scenario"))
+
+# The errorbars overlapped, so use position_dodge to move them horizontally
+pd <- position_dodge(0.1) # move them .05 to the left and right
+
+
+ggplot(summary_speed_SR, aes(x=scenario, y=ReservoirH, colour=EntryTiming_c, fill=EntryTiming_c)) + geom_errorbar(aes(ymin=ReservoirH - ci, ymax=ReservoirH + ci), width = 0.1, position=pd) +
+  geom_point(position=pd) + 
+  xlab("Migration Strategy") + ylab("Reservoir (h)")+
+ scale_color_manual(breaks=c("A","B","C"), values=c("lightblue",  "red", "darkblue"))+
+  theme_classic(base_size=15) 
+
+ggplot(efgh_win, aes(x=EntryTiming_c, y=ReservoirH, colour=scenario, fill=scenario)) + geom_boxplot()+
+  xlab("Migration Strategy") + ylab("Reservoir (h)")+
+  theme_classic(base_size=15) 
+
+ggplot(summary_speed_SR, aes(x=EntryTiming_c, y=ReservoirH, colour=scenario, fill=scenario)) + geom_errorbar(aes(ymin=ReservoirH - sd, ymax=ReservoirH + sd), width = 0.1, position=pd) +
+  geom_point(position=pd) + 
+  xlab("Migration Strategy") + ylab("Reservoir (h)")+
+  theme_classic(base_size=15) 
+```
+
+```{r GR exploratory plots 3}
 # entry timing vs. weight by scenario
 ggplot(data=abcd_win, aes(x=EntryTiming, y=Initial_weight, colour=scenario, fill=scenario)) + 
   geom_point()+ theme_classic(base_size=10)+
@@ -277,27 +385,84 @@ ggplot(data=abcd_win, aes(x=EntryTiming, y=Initial_weight, colour=scenario, fill
 
 ```
 
+```{r SR exploratory plots 3}
+# entry timing vs. weight by scenario
+ggplot(data=efgh_win, aes(x=EntryTiming, y=Initial_weight, colour=scenario, fill=scenario)) + 
+  geom_point()+ theme_classic(base_size=10)+
+  xlab("Entry Timing") + ylab("Initial weight (g)")+ 
+  scale_color_manual(breaks=c("Current with CWRs", "Current without CWRs", "Future with CWRs", "Future without CWRs"), values=c("lightblue",  "red", "darkblue", "yellow"))
 
+```
 
-```{r try smoothing}
+```{r GR density plot with smoothing entry timing vs reservoir hours}
 d<-ggplot(data=abcd_win, aes(x=EntryTiming, y=ReservoirH)) + 
   geom_point()+ theme_bw(base_size=15)+
-  xlab("Entry Timing") + ylab("Reservoir (h)") 
-
-
-d + stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon") +
+  xlab("Entry Timing") + ylab("Reservoir (h)") + 
+  theme(axis.text.x = element_text(angle = 45), panel.spacing = unit(1, "lines")) + 
+  stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon") +
   facet_grid(.~ scenario ) + scale_fill_viridis_c() 
+d
+
+#d<-ggplot(data=abcd_win, aes(x=EntryTiming, y=ReservoirH)) + 
+#  geom_point()+ theme_bw(base_size=10)+
+#  xlab("Entry Timing") + ylab("Reservoir (h)") 
 
 
-d<-ggplot(data=abcd_win, aes(x=EntryTiming, y=ReservoirH)) + 
-  geom_point()+ theme_bw(base_size=10)+
-  xlab("Entry Timing") + ylab("Reservoir (h)") 
-
-
-d + stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon") +
+# d + stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon") +
   facet_grid(scenario ~ .) + scale_fill_viridis_c() 
 #+geom_hline(aes(yintercept =350, col="red" ))
 ```
 
+```{r SR density plot with smoothing entry timing vs reservoir hours}
+e<-ggplot(data=efgh_win, aes(x=EntryTiming, y=ReservoirH)) + 
+  geom_point()+ theme_bw(base_size=15)+
+  xlab("Entry Timing") + ylab("Reservoir (h)") +
+  xlim(-1500, 1000)+
+  theme(axis.text.x = element_text(angle = 45), panel.spacing = unit(1, "lines")) + 
+  stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon") +
+  facet_grid(.~ scenario ) + scale_fill_viridis_c() 
 
+e
+
+
+#e<-ggplot(data=efgh_win, aes(x=EntryTiming, y=ReservoirH)) + 
+#  geom_point()+ theme_bw(base_size=10)+
+#  xlab("Entry Timing") + ylab("Reservoir (h)") 
+
+
+#e + stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon") +
+#  facet_grid(scenario ~ .) + scale_fill_viridis_c() 
+#+geom_hline(aes(yintercept =350, col="red" ))
+```
+
+```{r combine GR and SR data into one DF}
+abcd_win$species<-"Grande Ronde River Summer Steelhead"
+efgh_win$species<-"Snake River Fall Chinook Salmon"
+
+efgh_win<-select(efgh_win, -EntryTiming_c)
+all_win<-rbind.data.frame(abcd_win,efgh_win )
+```
+
+
+```{r}
+var_width = 20
+all_win <- mutate(all_win, pretty_species = stringr::str_wrap(species, width = var_width))
+width1=7
+height1=9
+
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/GR_SR_migration_strategy.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+
+
+e<-ggplot(data=all_win, aes(x=EntryTiming, y=ReservoirH)) + 
+  geom_point()+ theme_bw(base_size=13)+
+  xlab("Entry Timing") + ylab("Reservoir (h)") +
+  xlim(-1500, 1000)+
+  theme(axis.text.x = element_text(angle = 45, margin = margin(t = 6, r = 0, b = 0, l = 0)),  panel.spacing = unit(0.5, "lines")) + 
+  stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon") +
+  facet_grid(pretty_species ~ scenario ) + scale_fill_viridis_c()
+
+#e
+
+dev.off()
+```
 

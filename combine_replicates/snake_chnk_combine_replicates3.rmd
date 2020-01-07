@@ -1,5 +1,5 @@
 ---
-title: "Snake River fall chinook"
+title: "Snake River fall chinook 2017B"
 author: "MNSnyder"
 date: "9/4/2019"
 output: html_document
