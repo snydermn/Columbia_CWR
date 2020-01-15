@@ -1,7 +1,7 @@
 ---
 title: "Combine replicates Snake River fall chinook 2017B acute mortality sensitivity"
 author: "MNSnyder"
-date: "1/8/2020"
+date: "1/15/2020"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -20,28 +20,28 @@ library(data.table)
 ```
 
 
-## Snake River fall chinook combine replicates. 
+## Grande Ronde River summer steelhead combine replicates. 
 Combines repliate output for 4 scenarios- 
-* Columbia 2017
-* Columbia 2017, no CWRs
-* Columbia 2017 + 1 degree
-* Columbia 2017 + 1 degree, no CWRs
+* Columbia 2017 with CWRs with modified acute temperature mortality curve +.5%
+* Columbia 2017 with CWRs with modified acute temperature mortality curve +1%
+* Columbia 2017 without CWRs with modified acute temperature mortality curve +.5%
+* Columbia 2017 without CWRs with modified acute temperature mortality curve +1%
 
 
 Combines Data Probe model outputs for replicate model runs into one DF. Unique ID values are created by concatenating ID value with replicate number. 
 
 Need to specify path to individual replicate for a HexSim model run. 
 
-## Columbia 2040 No CWR
-```{r Columbia 2017 Current CWR set up path to each replicate model run}
-path1<-"D:/Results_4Populations/snake_Columbia2017B/snake_Columbia2017B-[1]/Data Probe/"
-path2<-"D:/Results_4Populations/snake_Columbia2017B/snake_Columbia2017B-[2]/Data Probe/"
-path3<-"D:/Results_4Populations/snake_Columbia2017B/snake_Columbia2017B-[3]/Data Probe/"
+## Columbia Current with CWRs acute 10% change
+```{r gr_Columbia2017B_minus0.5 set up path to each replicate model run}
+path1<-"D:/Results_4Populations/gr_Columbia2017B_minus0.5/gr_Columbia2017B_minus0.5-[1]/Data Probe/"
+path2<-"D:/Results_4Populations/gr_Columbia2017B_minus0.5/gr_Columbia2017B_minus0.5-[2]/Data Probe/"
+path3<-"D:/Results_4Populations/gr_Columbia2017B_minus0.5/gr_Columbia2017B_minus0.5-[3]/Data Probe/"
 
 ```
 
 For each replicate imports all CSVs in Data Probe folder into a list of tibbles. Each path defined above needs to be specified below to read in CSVs and create new unique ID.
-```{r Columbia 2017 Current CWR create unique ID for each CSV for replicates}
+```{r gr_Columbia2017B_minus0.5 create unique ID for each CSV for replicates}
 ## creates a list of tibbles of all CSVs in directory
 files1 <- list.files(path = path1, pattern = '.csv$', full.names = T) %>%
   map(read_csv)
@@ -72,12 +72,12 @@ for (e in 1:length(files3)){
 ```
 
 Need to specify lists to be combined below (files1, files2, files3). Drops intermediate columns used to create unique ID and re-orders columns to match original order of columns.
-```{r Columbia 2017 Current CWR combine like replicate DFs from lists into individual DFs}
+```{r gr_Columbia2017B_minus0.5 combine like replicate DFs from lists into individual DFs}
 #### combine tibbles from different lists into DF ####
 # creates DF A1 through A17
 # create combined folder before running
-dir.create("D:/Results_4Populations/snake_Columbia2017B/combined/")
-setwd("D:/Results_4Populations/snake_Columbia2017B/combined/")
+dir.create("D:/Results_4Populations/gr_Columbia2017B_minus0.5/combined/")
+setwd("D:/Results_4Populations/gr_Columbia2017B_minus0.5/combined/")
 
 for (f in 1:length(files1)){
   nam <- paste("E", f, sep = "")
@@ -90,16 +90,16 @@ for (f in 1:length(files1)){
   }
 ```
 
-## Columbia 2017 No CWR
-```{r Columbia 2017 No CWR Current set up path to each replicate model run}
-path4<-"D:/Results_4Populations/snake_Columbia2017B_NoCWR/snake_Columbia2017B_NoCWR-[1]/Data Probe/"
-path5<-"D:/Results_4Populations/snake_Columbia2017B_NoCWR/snake_Columbia2017B_NoCWR-[2]/Data Probe/"
-path6<-"D:/Results_4Populations/snake_Columbia2017B_NoCWR/snake_Columbia2017B_NoCWR-[3]/Data Probe/"
+## Columbia Current with CWRs acute 1% change
+```{r gr_Columbia2017B_minus1 set up path to each replicate model run}
+path4<-"D:/Results_4Populations/gr_Columbia2017B_minus1/gr_Columbia2017B_minus1-[1]/Data Probe/"
+path5<-"D:/Results_4Populations/gr_Columbia2017B_minus1/gr_Columbia2017B_minus1-[2]/Data Probe/"
+path6<-"D:/Results_4Populations/gr_Columbia2017B_minus1/gr_Columbia2017B_minus1-[3]/Data Probe/"
 
 ```
 
 For each replicate imports all CSVs in Data Probe folder into a list of tibbles. Each path defined above needs to be specified below to read in CSVs and create new unique ID.
-```{r Columbia 2017 No CWR Current create unique ID for each CSV for replicates}
+```{r gr_Columbia2017B_minus1 create unique ID for each CSV for replicates}
 ## creates a list of tibbles of all CSVs in directory
 files1 <- list.files(path = path4, pattern = '.csv$', full.names = T) %>%
   map(read_csv)
@@ -130,10 +130,10 @@ for (e in 1:length(files3)){
 ```
 
 Need to specify lists to be combined below (files1, files2, files3). Drops intermediate columns used to create unique ID and re-orders columns to match original order of columns.
-```{r Columbia 2017 No CWR Current combine like replicate DFs from lists into individual DFs}
+```{r gr_Columbia2017B_minus1 combine like replicate DFs from lists into individual DFs}
 #### combine tibbles from different lists into DF ####
-dir.create("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/")
-setwd("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/")
+dir.create("D:/Results_4Populations/gr_Columbia2017B_minus1/combined/")
+setwd("D:/Results_4Populations/gr_Columbia2017B_minus1/combined/")
 
 for (f in 1:length(files1)){
   nam <- paste("F", f, sep = "")
@@ -146,16 +146,16 @@ for (f in 1:length(files1)){
   }
 ```
 
-## Columbia 2017 plus 1
-```{r Columbia 2017 plus 1 set up path to each replicate model run}
-path7<-"D:/Results_4Populations/snake_Columbia2017BplusOne/snake_Columbia2017BplusOne-[1]/Data Probe/"
-path8<-"D:/Results_4Populations/snake_Columbia2017BplusOne/snake_Columbia2017BplusOne-[2]/Data Probe/"
-path9<-"D:/Results_4Populations/snake_Columbia2017BplusOne/snake_Columbia2017BplusOne-[3]/Data Probe/"
+## Columbia Current without CWRs acute 0.5% change
+```{r gr_Columbia2017B_NoCWR_minus0.5 set up path to each replicate model run}
+path7<-"D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/gr_Columbia2017B_NoCWR_minus0.5-[1]/Data Probe/"
+path8<-"D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/gr_Columbia2017B_NoCWR_minus0.5-[2]/Data Probe/"
+path9<-"D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/gr_Columbia2017B_NoCWR_minus0.5-[3]/Data Probe/"
 
 ```
 
 For each replicate imports all CSVs in Data Probe folder into a list of tibbles. Each path defined above needs to be specified below to read in CSVs and create new unique ID.
-```{r Columbia 2017 plus 1 create unique ID for each CSV for replicates}
+```{r gr_Columbia2017B_NoCWR_minus0.5 create unique ID for each CSV for replicates}
 ## creates a list of tibbles of all CSVs in directory
 files1 <- list.files(path = path7, pattern = '.csv$', full.names = T) %>%
   map(read_csv)
@@ -186,10 +186,10 @@ for (e in 1:length(files3)){
 ```
 
 Need to specify lists to be combined below (files1, files2, files3). Drops intermediate columns used to create unique ID and re-orders columns to match original order of columns.
-```{r Columbia 2017 plus 1 combine like replicate DFs from lists into individual DFs}
+```{r gr_Columbia2017B_NoCWR_minus0.5 combine like replicate DFs from lists into individual DFs}
 #### combine tibbles from different lists into DF ####
-dir.create("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/")
-setwd("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/")
+dir.create("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/combined/")
+setwd("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/combined/")
 
 for (f in 1:length(files1)){
   nam <- paste("G", f, sep = "")
@@ -202,16 +202,16 @@ for (f in 1:length(files1)){
   }
 ```
 
-## Columbia 2017 plus 1 no CWR
-```{r Columbia 2017 plus 1 no CWR set up path to each replicate model run}
-path10<-"D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/snake_Columbia2017BplusOne_NoCWR-[1]/Data Probe/"
-path11<-"D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/snake_Columbia2017BplusOne_NoCWR-[2]/Data Probe/"
-path12<-"D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/snake_Columbia2017BplusOne_NoCWR-[3]/Data Probe/"
+## Columbia Current without CWRs acute 1% change
+```{r gr_Columbia2017B_NoCWR_minus1 set up path to each replicate model run}
+path10<-"D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/gr_Columbia2017B_NoCWR_minus1-[1]/Data Probe/"
+path11<-"D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/gr_Columbia2017B_NoCWR_minus1-[2]/Data Probe/"
+path12<-"D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/gr_Columbia2017B_NoCWR_minus1-[3]/Data Probe/"
 
 ```
 
 For each replicate imports all CSVs in Data Probe folder into a list of tibbles. Each path defined above needs to be specified below to read in CSVs and create new unique ID.
-```{r Columbia 2017 plus 1 no CWR create unique ID for each CSV for replicates}
+```{r gr_Columbia2017B_NoCWR_minus1 create unique ID for each CSV for replicates}
 ## creates a list of tibbles of all CSVs in directory
 files1 <- list.files(path = path10, pattern = '.csv$', full.names = T) %>%
   map(read_csv)
@@ -242,10 +242,10 @@ for (e in 1:length(files3)){
 ```
 
 Need to specify lists to be combined below (files1, files2, files3). Drops intermediate columns used to create unique ID and re-orders columns to match original order of columns.
-```{r Columbia 2017 plus 1 no CWR combine like replicate DFs from lists into individual DFs}
+```{r gr_Columbia2017B_NoCWR_minus1 combine like replicate DFs from lists into individual DFs}
 #### combine tibbles from different lists into DF ####
-dir.create("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/")
-setwd("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/")
+dir.create("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/combined/")
+setwd("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/combined/")
 
 for (f in 1:length(files1)){
   nam <- paste("H", f, sep = "")

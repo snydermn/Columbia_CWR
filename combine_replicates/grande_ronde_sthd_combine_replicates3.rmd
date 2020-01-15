@@ -21,7 +21,7 @@ library(data.table)
 
 
 ## Grande Ronde summer steelhead combine replicates. 
-Combines repliate output for 4 scenarios- 
+Combines replicate output for 4 scenarios- 
 * Columbia 2017
 * Columbia 2017, no CWRs
 * Columbia 2017 + 1 degree

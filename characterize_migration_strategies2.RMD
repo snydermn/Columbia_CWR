@@ -20,6 +20,7 @@ library(plotly)
 library(GGally)
 library(doBy) # statistical summary function
 library(stringr)
+library(hdrcde)
 ```
 
 Imports end condition data for combined replicates for 2 populations (Snake River Fall Chinook and Grande Ronde summer steelhead) for 4 scenarios which vary by thermalscape- 
@@ -464,5 +465,54 @@ e<-ggplot(data=all_win, aes(x=EntryTiming, y=ReservoirH)) +
 #e
 
 dev.off()
+```
+
+
+
+```{r 2D HDR plots}
+#x <- c(rnorm(200,0,1),rnorm(200,4,1))
+#y <- c(rnorm(200,0,1),rnorm(200,4,1))
+#hdr.boxplot.2d(x,y)
+
+# sthd
+a_win_sthd<-filter(abcd_win, scenario == "Current with CWRs")
+b_win_sthd<-filter(abcd_win, scenario == "Current without CWRs")
+c_win_sthd<-filter(abcd_win, scenario == "Future with CWRs")
+d_win_sthd<-filter(abcd_win, scenario == "Future without CWRs")
+# chnk
+a_win_chnk<-filter(efgh_win, scenario == "Current with CWRs")
+b_win_chnk<-filter(efgh_win, scenario == "Current without CWRs")
+c_win_chnk<-filter(efgh_win, scenario == "Future with CWRs")
+d_win_chnk<-filter(efgh_win, scenario == "Future without CWRs")
+
+width1 = 7
+height1 = 7
+
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/GR_migration_strategy_hdr.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+# sthd
+par(mfrow=c(2,2), mar=c(2,2,1,1)) # (bottom, left, top, right)
+hdr.boxplot.2d(prob = c(50, 90, 100), x=a_win_sthd$EntryTiming, y=a_win_sthd$ReservoirH, ylab="Migration Time outside CWRs", ylim=c(200, 600))
+hdr.boxplot.2d(prob = c(50, 90, 100), x=b_win_sthd$EntryTiming, y=b_win_sthd$ReservoirH, ylim=c(200, 600))
+hdr.boxplot.2d(prob = c(50, 90, 100), x=c_win_sthd$EntryTiming, y=c_win_sthd$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylab="Migration Time outside CWRs", ylim=c(200, 600))
+hdr.boxplot.2d(prob = c(50, 90, 100), x=d_win_sthd$EntryTiming, y=d_win_sthd$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylim=c(200, 600))
+dev.off()
+
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/SR_migration_strategy_hdr.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+# chnk
+par(mfrow=c(2,2), mar=c(2,2,1,1)) # (bottom, left, top, right)
+hdr.boxplot.2d(prob = c(50, 90, 95), x=a_win_chnk$EntryTiming, y=a_win_chnk$ReservoirH, ylab="Migration Time outside CWRs", ylim=c(100, 400))
+hdr.boxplot.2d(prob = c(50, 90, 95), x=b_win_chnk$EntryTiming, y=b_win_chnk$ReservoirH, ylim=c(100, 400))
+hdr.boxplot.2d(prob = c(50, 90, 95), x=c_win_chnk$EntryTiming, y=c_win_chnk$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylab="Migration Time outside CWRs", ylim=c(100, 400))
+hdr.boxplot.2d(prob = c(50, 90, 95), x=d_win_chnk$EntryTiming, y=d_win_chnk$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylim=c(100, 400))
+dev.off()
+
+#par(mfrow=c(1,2))
+#hdr.boxplot.2d(x=abcd_end$EntryTiming, y=abcd_end$ReservoirH)
+#hdr.boxplot.2d(x=abcd_win$EntryTiming, y=abcd_win$ReservoirH)
+
+hdr.boxplot.2d(x=efgh_end$EntryTiming, y=efgh_end$ReservoirH)
+hdr.boxplot.2d(x=efgh_win$EntryTiming, y=efgh_win$ReservoirH)
+
+
 ```
 

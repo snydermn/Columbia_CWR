@@ -1,0 +1,220 @@
+---
+title: "energy lost with error GR and SR"
+author: "MNSnyder"
+date: "1/7/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(lubridate)
+library(dplyr)
+library(plotly)
+library(GGally)
+library(doBy) # statistical summary function
+library(stringr)
+```
+
+Creates mean (+ error bars) % energy used plot for Grande Ronde summer steelhead and Snake River Fall chinook populations. 
+
+Grande Ronde summer steelhead Columbia River temperature time series from 2017. 
+4 scenarios included:
+
+* Columbia River 2017
+* Columbia River 2017, no CWRs
+* Columbia River 2017 plus 1
+* Columbia River 2017 plus 1, no CWRs
+
+Columbia 2017A assigns the John Day Pool temperature from the John Day forebay, which is the warmer part of the pool.
+
+
+```{r import end condition}
+# import in combined replicate DFs
+A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+C13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
+D13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(A13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(B13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(C13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+```
+
+
+```{r created energy used for all scenarios without gamete}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+A13<-avail_energy_diff(A13)
+B13<-avail_energy_diff(B13)
+C13<-avail_energy_diff(C13)
+D13<-avail_energy_diff(D13)
+
+# add scenario identifying column
+A13$scenario<-"Current with CWRs"
+B13$scenario<-"Current without CWRs"
+C13$scenario<-"Future with CWRs"
+D13$scenario<-"Future without CWRs"
+
+# combine DFs 
+all_GR<-rbind.data.frame(A13, B13, C13, D13)
+```
+
+
+
+```{r import end condition}
+# import in combined replicate DFs
+E13<-read.table("D:/Results_4Populations/snake_Columbia2017B/combined/E4.csv", header=TRUE, sep=",")
+F13<-read.table("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F4.csv", header=TRUE, sep=",")
+G13<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G4.csv", header=TRUE, sep=",")
+H13<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H4.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(E13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(F13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(G13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(H13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+```
+
+
+```{r created energy used for all scenarios without gamete}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+E13<-avail_energy_diff(E13)
+F13<-avail_energy_diff(F13)
+G13<-avail_energy_diff(G13)
+H13<-avail_energy_diff(H13)
+
+# add scenario identifying column
+E13$scenario<-"Current with CWRs"
+F13$scenario<-"Current without CWRs"
+G13$scenario<-"Future with CWRs"
+H13$scenario<-"Future without CWRs"
+
+# combine DFs 
+all_snake<-rbind.data.frame(E13, F13, G13, H13)
+```
+
+```{r statistical summary function}
+## Summarizes data.
+## Gives count, mean, standard deviation, standard error of the mean, and confidence 
+## interval (default 95%).
+##   data: a data frame.
+##   measurevar: the name of a column that contains the variable to be summariezed
+##   groupvars: a vector containing names of columns that contain grouping variables
+##   na.rm: a boolean that indicates whether to ignore NA's
+##   conf.interval: the percent range of the confidence interval (default is 95%)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE, conf.interval=.95) {
+    library(doBy)
+
+    # New version of length which can handle NA's: if na.rm==T, don't count them
+    length2 <- function (x, na.rm=FALSE) {
+        if (na.rm) sum(!is.na(x))
+        else       length(x)
+    }
+
+    # Collapse the data
+    formula <- as.formula(paste(measurevar, paste(groupvars, collapse=" + "), sep=" ~ "))
+    datac <- summaryBy(formula, data=data, FUN=c(length2,mean,sd), na.rm=na.rm)
+
+    # Rename columns
+    names(datac)[ names(datac) == paste(measurevar, ".mean",    sep="") ] <- measurevar
+    names(datac)[ names(datac) == paste(measurevar, ".sd",      sep="") ] <- "sd"
+    names(datac)[ names(datac) == paste(measurevar, ".length2", sep="") ] <- "N"
+    
+    datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+    
+    # Confidence interval multiplier for standard error
+    # Calculate t-statistic for confidence interval: 
+    # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+    ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+    datac$ci <- datac$se * ciMult
+    
+    return(datac)
+}
+```
+
+
+```{r GR plot mean plus error energy used}
+
+summary_snake<-summarySE(all_snake, measurevar = "ED_per_used", groupvars = c( "scenario"))
+
+summary_GR<-summarySE(all_GR, measurevar = "ED_per_used", groupvars = c( "scenario"))
+
+```
+
+```{r SR plot mean plus error energy used}
+ggplot(summary_snake, aes(x=scenario, y=ED_per_used, colour=scenario, fill=scenario)) +
+  geom_errorbar(aes(ymin=ED_per_used - sd, ymax=ED_per_used + sd), width = 0.1) +
+  geom_point() + 
+  xlab("Scenario") + ylab("% Energy Density Used")
+
+ggplot(summary_GR, aes(x=scenario, y=ED_per_used, colour=scenario, fill=scenario)) +
+  geom_errorbar(aes(ymin=ED_per_used - sd, ymax=ED_per_used + sd), width = 0.1) +
+  geom_point() + 
+  xlab("Scenario") + ylab("% Energy Density Used")
+```
+
+
+
+```{r}
+# combine snake and GR dataframes
+all_energy<-rbind.data.frame(all_snake, all_GR)
+
+# for text wrapping
+var_width = 15
+all_energy <- mutate(all_energy, pretty_scenario = stringr::str_wrap(scenario, width = var_width))
+
+# create summary stats
+summary_all<-summarySE(all_energy, measurevar = "ED_per_used", groupvars = c( "pretty_scenario", "Population"))
+
+# for plot position dodging
+pd <- position_dodge(0.1) # move them .05 to the left and right
+
+width1 = 4
+height1 = 3
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/GR_SR_energy_used.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+
+# plot
+ggplot(summary_all, aes(x=pretty_scenario, y=ED_per_used, colour=Population, fill=Population)) +
+  geom_errorbar(aes(ymin=ED_per_used - sd, ymax=ED_per_used + sd), width = 0.1, position=pd) +
+  geom_point(position=pd) + 
+  ylab("% Energy Density Used")+ xlab("")+
+ scale_color_manual(breaks=c("Chinook", "Steelhead"), values=c("red", "blue"))+
+  theme_classic(base_size=10) + 
+  theme(legend.position = "none")
+
+dev.off()
+```
+
+
+
+

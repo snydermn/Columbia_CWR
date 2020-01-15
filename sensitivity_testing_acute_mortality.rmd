@@ -1,0 +1,235 @@
+---
+title: "sensitivity testing acute mortality"
+author: "MNSnyder"
+date: "1/8/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(lubridate)
+library(dplyr)
+library(plotly)
+library(GGally)
+library(doBy) # statistical summary function
+library(stringr)
+```
+
+
+```{r import end condition}
+# import in combined replicate DFs
+A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+C13<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus0.5/combined/E13.csv", header=TRUE, sep=",")
+D13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/combined/G13.csv", header=TRUE, sep=",")
+E13<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus1/combined/F13.csv", header=TRUE, sep=",")
+F13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/combined/H13.csv", header=TRUE, sep=",")
+
+# rename columns
+rename_end_condition <-function(DF){
+  names(DF)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+  return(DF)
+}
+
+A13 <- rename_end_condition(A13)
+B13 <- rename_end_condition(B13)
+C13 <- rename_end_condition(C13)
+D13 <- rename_end_condition(D13)
+E13 <- rename_end_condition(E13)
+F13 <- rename_end_condition(F13)
+
+```
+
+
+```{r created energy used for all scenarios without gamete}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+A13<-avail_energy_diff(A13)
+B13<-avail_energy_diff(B13)
+C13<-avail_energy_diff(C13)
+D13<-avail_energy_diff(D13)
+E13<-avail_energy_diff(E13)
+F13<-avail_energy_diff(F13)
+
+# add scenario identifying column
+A13$scenario<-"Current with CWRs"
+B13$scenario<-"Current without CWRs"
+C13$scenario<-"Increase acute mortality with CWRs A"
+D13$scenario<-"Increase acute mortality without CWRs A"
+E13$scenario<-"Increase acute mortality with CWRs B"
+F13$scenario<-"Increase acute mortality without CWRs B"
+
+# combine DFs 
+all_GR<-rbind.data.frame(A13, B13, C13, D13, E13, F13)
+```
+
+
+```{r statistical summary function}
+## Summarizes data.
+## Gives count, mean, standard deviation, standard error of the mean, and confidence 
+## interval (default 95%).
+##   data: a data frame.
+##   measurevar: the name of a column that contains the variable to be summariezed
+##   groupvars: a vector containing names of columns that contain grouping variables
+##   na.rm: a boolean that indicates whether to ignore NA's
+##   conf.interval: the percent range of the confidence interval (default is 95%)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE, conf.interval=.95) {
+    library(doBy)
+
+    # New version of length which can handle NA's: if na.rm==T, don't count them
+    length2 <- function (x, na.rm=FALSE) {
+        if (na.rm) sum(!is.na(x))
+        else       length(x)
+    }
+
+    # Collapse the data
+    formula <- as.formula(paste(measurevar, paste(groupvars, collapse=" + "), sep=" ~ "))
+    datac <- summaryBy(formula, data=data, FUN=c(length2,mean,sd), na.rm=na.rm)
+
+    # Rename columns
+    names(datac)[ names(datac) == paste(measurevar, ".mean",    sep="") ] <- measurevar
+    names(datac)[ names(datac) == paste(measurevar, ".sd",      sep="") ] <- "sd"
+    names(datac)[ names(datac) == paste(measurevar, ".length2", sep="") ] <- "N"
+    
+    datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+    
+    # Confidence interval multiplier for standard error
+    # Calculate t-statistic for confidence interval: 
+    # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+    ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+    datac$ci <- datac$se * ciMult
+    
+    return(datac)
+}
+```
+
+
+```{r GR plot mean plus error energy used}
+# for text wrapping
+var_width = 15
+all_GR2 <- mutate(all_GR, pretty_scenario = stringr::str_wrap(scenario, width = var_width))
+
+summary_GR<-summarySE(all_GR2, measurevar = "ED_per_used", groupvars = c( "pretty_scenario"))
+
+```
+
+
+```{r percent energy used plot}
+# for plot position dodging
+pd <- position_dodge(0.1) # move them .05 to the left and right
+
+width1 = 4
+height1 = 3
+
+# plot
+ggplot(summary_GR, aes(x=pretty_scenario, y=ED_per_used)) +
+  geom_errorbar(aes(ymin=ED_per_used - sd, ymax=ED_per_used + sd), width = 0.1, position=pd) +
+  geom_point(position=pd) + 
+  ylab("% Energy Density Used")+ xlab("")+
+ #scale_color_manual(breaks=c("Chinook", "Steelhead"), values=c("red", "blue"))+
+  theme_classic(base_size=10) + 
+  theme(legend.position = "none")
+```
+
+
+```{r import dead table for percent dead across scenarios}
+# import in combined replicate DFs
+A12<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E12.csv", header=TRUE, sep=",")
+B12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F12.csv", header=TRUE, sep=",")
+C12<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus0.5/combined/E12.csv", header=TRUE, sep=",")
+D12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/combined/G12.csv", header=TRUE, sep=",")
+E12<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus1/combined/F12.csv", header=TRUE, sep=",")
+F12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/combined/H12.csv", header=TRUE, sep=",")
+
+names_v<-c("Current with CWRs","Current without CWRs","Increase acute mortality with CWRs A","Increase acute mortality without CWRs A","Increase acute mortality with CWRs B","Increase acute mortality without CWRs B")
+
+```
+
+
+```{r create percent dead across scenarios kable}
+# number of simulated fish
+num_fish<-6000
+# get number of individuals died from acute temperature stress
+acute_A<-((dim(A12)[1])/ num_fish) * 100
+acute_B<-((dim(B12)[1])/ num_fish) * 100
+acute_C<-((dim(C12)[1])/ num_fish) * 100
+acute_D<-((dim(D12)[1])/ num_fish) * 100
+acute_E<-((dim(E12)[1])/ num_fish) * 100
+acute_F<-((dim(F12)[1])/ num_fish) * 100
+
+acute_v<-c( acute_A, acute_B, acute_C,acute_D, acute_E, acute_F)
+
+acute_all<-cbind(names_v, acute_v)
+
+kable(acute_all, col.names=c("Scenario", "Total mortality"), caption="Table 1. Model output for percent of individuals dying from acute temperature stress summarized for Grande Ronde River Summer Steelhead.")
+```
+
+
+```{r arrival timing PDF across scenarios}
+
+# model starts on July 1 which is equivalent to julian day 182
+jday_start<-182
+
+# step is hour arrived at terminus
+# convert Step to julian day
+all_GR2$terminus_jday<-floor(all_GR2$Step / 24) + jday_start
+# convert julian day to date
+all_GR2$terminus_date_ch<-chron(all_GR2$terminus_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+all_GR2$terminus_date<- as.POSIXct(all_GR2$terminus_date_ch, "GMT") 
+
+# Time_entry is hour started from Bonneville
+# convert Step to julian day
+all_GR2$entry_jday<-floor(all_GR2$Time_entry / 24) + jday_start
+# convert julian day to date
+all_GR2$entry_date_ch<-chron(all_GR2$entry_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+all_GR2$entry_date<- as.POSIXct(all_GR2$entry_date_ch, "GMT") 
+
+```
+
+```{r pdf snake river arrival timing}
+# p <- ggplot(data = all_GR2, aes(x = terminus_date, fill=scenario)) + geom_density( alpha=0.5) + theme_classic()
+# p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") + 
+#   scale_color_manual(values=c("darkorange3", "blue4")) + 
+#   scale_fill_manual(values=c( "darkorange3", "blue4"),labels=c("Columbia 2017", "Columbia 2017 / No CWR")) +
+#   theme(axis.text=element_text(size=14),
+#         axis.title=element_text(size=14),
+#         legend.text = element_text(size=14), legend.position = c(.95, .95),
+#   legend.justification = c("right", "top"))
+
+  
+p <- ggplot(data = all_GR2, aes(x = terminus_date, colour=scenario)) + geom_density( alpha=0.5) + theme_classic()
+p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") +  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
