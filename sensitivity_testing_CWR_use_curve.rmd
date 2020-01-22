@@ -1,17 +1,16 @@
 ---
-title: "Sensitivity Testing: temperature stress on survival"
+title: "sensitivity testing probability of CWR use curve"
 author: "MNSnyder"
 date: "1/8/2020"
-output:
-  html_document: default
-  pdf_document: default
-editor_options:
+output: html_document
+editor_options: 
   chunk_output_type: console
 ---
 
+Sensitivity analysis of how move to cold water refuge curve, in the Set Movement Behavior events, affects fish fitness metrics. Increased or decreased the probability of moving to cold water refuge across all the temperatures by (-0.003, -0.006, +0.003, + 0.006) for the whole curve for Grande Ronde River summer steelhead.
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(cowplot)
 library(data.table)
@@ -26,49 +25,13 @@ library(stringr)
 ```
 
 
-```{r import and plot temperature mortality table, fig.cap="Fig. 1. Modeled probability of survivorship based on 24 h mean temperature exposure. To test sensitivity of model outcomes to lethal temperature stress the default modeled curve was decreased by 0.5% and 1%. "}
-
-survival<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival Curves.csv", header=TRUE, sep=",")
-survival0.5<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival minus0.5.csv", header=TRUE, sep=",")
-survival1<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival minus1.csv", header=TRUE, sep=",")
-
-## format for plot
-# rename columns
-names(survival) <- c("Temperature", "Survival")
-names(survival0.5) <- c("Temperature", "Survival")
-names(survival1) <- c("Temperature", "Survival")
-# name tests for plot group
-survival$scenario <- "Default"
-survival0.5$scenario <- "Decrease survival by 0.5%"
-survival1$scenario <- "Decrease survival by 1%"
-# combine DF into one for plot
-survival_all <- rbind.data.frame(survival, survival0.5, survival1)
-survival_all$scenario <- as.factor(survival_all$scenario)
-# change order of scenarios for plot
-survival_all$scenario <- factor(survival_all$scenario, levels=c("Default", "Decrease survival by 0.5%", "Decrease survival by 1%"))
-
-## plot
-
-survival_plot<-ggplot(survival_all, aes(x=Temperature, y=Survival, colour=scenario)) +
-  geom_line(size=1.25) +
-  scale_color_manual(values = c("blue", "orange", "red"))+
-  ylab("% Survival (24 h)")+
-  theme_bw()+
-  theme(legend.title = element_blank())
-
-survival_plot
-```
-
-
-
 ```{r import end condition}
 # import in combined replicate DFs
-A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
-B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
-C13<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus0.5/combined/E13.csv", header=TRUE, sep=",")
-D13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/combined/G13.csv", header=TRUE, sep=",")
-E13<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus1/combined/F13.csv", header=TRUE, sep=",")
-F13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/combined/H13.csv", header=TRUE, sep=",")
+A13<-read.table("D:/Results_4Populations/gr_Columbia2017B_mvmt_minusB/combined/F13.csv", header=TRUE, sep=",")
+B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_mvmt_minusA/combined/E13.csv", header=TRUE, sep=",")
+C13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+D13<-read.table("D:/Results_4Populations/gr_Columbia2017B_mvmt_plusA/combined/G13.csv", header=TRUE, sep=",")
+E13<-read.table("D:/Results_4Populations/gr_Columbia2017B_mvmt_plusB/combined/H13.csv", header=TRUE, sep=",")
 
 # rename columns
 rename_end_condition <-function(DF){
@@ -81,7 +44,6 @@ B13 <- rename_end_condition(B13)
 C13 <- rename_end_condition(C13)
 D13 <- rename_end_condition(D13)
 E13 <- rename_end_condition(E13)
-F13 <- rename_end_condition(F13)
 
 ```
 
@@ -103,18 +65,16 @@ B13<-avail_energy_diff(B13)
 C13<-avail_energy_diff(C13)
 D13<-avail_energy_diff(D13)
 E13<-avail_energy_diff(E13)
-F13<-avail_energy_diff(F13)
 
 # add scenario identifying column
-A13$scenario<-"Default"
-B13$scenario<-"Default without CWRs"
-C13$scenario<-"Decrease survival by 0.5%"
-D13$scenario<-"Decrease survival by 0.5% without CWRs"
-E13$scenario<-"Decrease survival by 1%"
-F13$scenario<-"Decrease survival by 1% without CWRs"
+A13$scenario<-"Decreased move to CWR by A"
+B13$scenario<-"Decreased move to CWR by B"
+C13$scenario<-"Current with CWRs"
+D13$scenario<-"Increased move to CWR by B"
+E13$scenario<-"Increased move to cWR by A"
 
 # combine DFs 
-all_GR<-rbind.data.frame(A13, B13, C13, D13, E13, F13)
+all_GR<-rbind.data.frame(A13, B13, C13, D13, E13)
 ```
 
 
@@ -168,14 +128,7 @@ summary_GR<-summarySE(all_GR2, measurevar = "ED_per_used", groupvars = c( "prett
 ```
 
 
-```{r percent energy used plot, fig.cap="Fig. 2. Fish fitness model outcomes for the population showing mean (±SE) percent of energy used. To test sensitivity of fish fitness model outcomes to lethal temperature stress the default modeled curve was decreased by 0.5% and 1%. "}
-
-# change order of scenarios for plot
-summary_GR$pretty_scenario <- factor(summary_GR$pretty_scenario, levels=c("Default", "Default without\nCWRs", 
-                                                      "Decrease\nsurvival by\n0.5%", "Decrease\nsurvival by\n0.5% without\nCWRs",
-                                                      "Decrease\nsurvival by 1%", "Decrease\nsurvival by 1%\nwithout CWRs"))
-
-
+```{r percent energy used plot}
 # for plot position dodging
 pd <- position_dodge(0.1) # move them .05 to the left and right
 
@@ -183,15 +136,13 @@ width1 = 4
 height1 = 3
 
 # plot
-ggplot(summary_GR, aes(x=pretty_scenario, y=ED_per_used, colour=pretty_scenario, linetype=pretty_scenario)) +
-  geom_errorbar(aes(ymin=ED_per_used - se, ymax=ED_per_used + se), width = 0.1, position=pd, size=1.25) +
-  geom_point(position=pd, size=2) + 
+ggplot(summary_GR, aes(x=pretty_scenario, y=ED_per_used)) +
+  geom_errorbar(aes(ymin=ED_per_used - sd, ymax=ED_per_used + sd), width = 0.1, position=pd) +
+  geom_point(position=pd) + 
   ylab("% Energy Density Used")+ xlab("")+
+ #scale_color_manual(breaks=c("Chinook", "Steelhead"), values=c("red", "blue"))+
   theme_classic(base_size=10) + 
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=14),legend.position = "none")+ scale_linetype_manual(values=c(1,2,1,2,1,2))+
-  scale_colour_manual(values=c("blue4", "blue4", "darkorange3", "darkorange3", "green", "green"))
-  
+  theme(legend.position = "none")
 ```
 
 
@@ -204,7 +155,7 @@ D12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/combine
 E12<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus1/combined/F12.csv", header=TRUE, sep=",")
 F12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/combined/H12.csv", header=TRUE, sep=",")
 
-names_v<-c("Default","Default without CWRs","Decrease survival by 0.5%","Decrease survival by 0.5% without CWRs","Decrease survival by 1%","Decrease survival by 1% without CWRs")
+names_v<-c("Current with CWRs","Current without CWRs","Increase acute mortality with CWRs A","Increase acute mortality without CWRs A","Increase acute mortality with CWRs B","Increase acute mortality without CWRs B")
 
 ```
 
@@ -222,9 +173,9 @@ acute_F<-((dim(F12)[1])/ num_fish) * 100
 
 acute_v<-c( acute_A, acute_B, acute_C,acute_D, acute_E, acute_F)
 
-acute_all<-cbind.data.frame(names_v, acute_v)
+acute_all<-cbind(names_v, acute_v)
 
-kable(acute_all, digits=3, col.names=c("Scenario", "Total mortality"), caption="Table 1. Model output for percent of individuals dying from acute temperature stress summarized for Grande Ronde River Summer Steelhead.")
+kable(acute_all, col.names=c("Scenario", "Total mortality"), caption="Table 1. Model output for percent of individuals dying from acute temperature stress summarized for Grande Ronde River Summer Steelhead.")
 ```
 
 
@@ -252,17 +203,21 @@ all_GR2$entry_date<- as.POSIXct(all_GR2$entry_date_ch, "GMT")
 ```
 
 
-```{r pdf snake river arrival timing, fig.cap="Fig. 3. Smoothed histogram of arrival timing at the Snake River confluence for Grande Ronde River summer steelhead model outputs across six modeled scenarios. To test sensitivity of fish fitness model outcomes to lethal temperature stress the default modeled curve was decreased by 0.5% and 1%. "}
+```{r pdf snake river arrival timing}
 # reorder scenarios for plot
 all_GR2$scenario<-as.factor(all_GR2$scenario)
-all_GR2$scenario <- factor(all_GR2$scenario, levels=c("Default","Default without CWRs","Decrease survival by 0.5%","Decrease survival by 0.5% without CWRs","Decrease survival by 1%","Decrease survival by 1% without CWRs"))
+all_GR2$scenario <- factor(all_GR2$scenario, levels=c("Current with CWRs","Current without CWRs","Increase acute mortality with CWRs A","Increase acute mortality without CWRs A","Increase acute mortality with CWRs B","Increase acute mortality without CWRs B"))
   
 p <- ggplot(data = all_GR2, aes(x = terminus_date, linetype=as.factor(scenario),color=as.factor(scenario))) + geom_density( alpha=0.5, size=1.25) + theme_classic()
-p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") +  theme(legend.title = element_blank(), axis.text=element_text(size=14),
+p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") +  theme(axis.text=element_text(size=14),
         axis.title=element_text(size=14)) +scale_linetype_manual(values=c(1,2,1,2,1,2))+
    scale_color_manual(values=c("blue4", "blue4", "darkorange3", "darkorange3", "green", "green"))
    
 ```
+
+
+
+
 
 
 
