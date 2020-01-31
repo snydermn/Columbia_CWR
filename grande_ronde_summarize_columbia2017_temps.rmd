@@ -15,7 +15,6 @@ Grande Ronde summer steelhead Columbia River temperature time series from 2017.
 * Columbia River 2017 plus 1
 * Columbia River 2017 plus 1, no CWRs
 
-Columbia 2017A assigns the John Day Pool temperature from the John Day forebay, which is the warmer part of the pool.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)

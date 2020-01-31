@@ -9,6 +9,7 @@ editor_options:
   chunk_output_type: console
 ---
 
+To evaluate how uncertainty in the temperature exposure survival relationship influences fish fitness outcomes we ran a sensitivity analysis by decreasing survivorship across all temperatures by 0.5% and 1%. We modeled the Grande Ronde Summer Steelhead population because of their large range in propensity to behaviorally thermoregulate. Sensitivity tests were based on a typical recent temperature year (2017) for the Columbia River. To facilitate comparison of the relative importance of mortality from temperature exposure on fish fitness outcomes we also simulated the thermalscape without cold water refuges as part of the sensitvity analysis. The effect of increasing mortality (decreasing survivorship) from temperature stress was measured on fish fitness outcomes including the percent mortality, overall energy used, and arrival timing at the Snake River confluence. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
@@ -26,7 +27,7 @@ library(stringr)
 ```
 
 
-```{r import and plot temperature mortality table, fig.cap="Fig. 1. Modeled probability of survivorship based on 24 h mean temperature exposure. To test sensitivity of model outcomes to lethal temperature stress the default modeled curve was decreased by 0.5% and 1%. "}
+```{r import and plot temperature mortality table, fig.cap="Fig. 1. Modeled probability of survivorship based on 24 h mean temperature exposure. The default values used in the migration corridor simulation were developed from InStream User's Manual. To test sensitivity of model outcomes to lethal temperature stress the default modeled values were decreased by 0.5% and 1%. ."}
 
 survival<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival Curves.csv", header=TRUE, sep=",")
 survival0.5<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival minus0.5.csv", header=TRUE, sep=",")
@@ -51,8 +52,8 @@ survival_all$scenario <- factor(survival_all$scenario, levels=c("Default", "Decr
 
 survival_plot<-ggplot(survival_all, aes(x=Temperature, y=Survival, colour=scenario)) +
   geom_line(size=1.25) +
-  scale_color_manual(values = c("blue", "orange", "red"))+
-  ylab("% Survival (24 h)")+
+  scale_color_manual(values = c("blue", "orange", "cyan"))+
+  ylab("% Survival (24 h)")+ xlab("Temperature (°C)")+
   theme_bw()+
   theme(legend.title = element_blank())
 
@@ -167,6 +168,43 @@ summary_GR<-summarySE(all_GR2, measurevar = "ED_per_used", groupvars = c( "prett
 
 ```
 
+```{r import dead table for percent dead across scenarios}
+# import in combined replicate DFs
+A12<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E12.csv", header=TRUE, sep=",")
+B12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F12.csv", header=TRUE, sep=",")
+C12<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus0.5/combined/E12.csv", header=TRUE, sep=",")
+D12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/combined/G12.csv", header=TRUE, sep=",")
+E12<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus1/combined/F12.csv", header=TRUE, sep=",")
+F12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/combined/H12.csv", header=TRUE, sep=",")
+
+names_v<-c("Default","Default without CWRs","Decrease survival by 0.5%","Decrease survival by 0.5% without CWRs","Decrease survival by 1%","Decrease survival by 1% without CWRs")
+
+```
+
+#### *Survival*
+
+A small decrease in survival across all temperatures can translate into a disproporionately higher number of deceased fish because the probability of survivorship is calculated every 24 h. 
+
+```{r create percent dead across scenarios kable}
+# number of simulated fish
+num_fish<-6000
+# get number of individuals died from acute temperature stress
+acute_A<-((dim(A12)[1])/ num_fish) * 100
+acute_B<-((dim(B12)[1])/ num_fish) * 100
+acute_C<-((dim(C12)[1])/ num_fish) * 100
+acute_D<-((dim(D12)[1])/ num_fish) * 100
+acute_E<-((dim(E12)[1])/ num_fish) * 100
+acute_F<-((dim(F12)[1])/ num_fish) * 100
+
+acute_v<-c( acute_A, acute_B, acute_C,acute_D, acute_E, acute_F)
+
+acute_all<-cbind.data.frame(names_v, acute_v)
+
+kable(acute_all, digits=1, col.names=c("Scenario", "Total mortality"), caption="Table 1. Model output for percent of individuals dying from acute temperature stress summarized for Grande Ronde River Summer Steelhead.")
+```
+
+
+#### *Energy Use*
 
 ```{r percent energy used plot, fig.cap="Fig. 2. Fish fitness model outcomes for the population showing mean (±SE) percent of energy used. To test sensitivity of fish fitness model outcomes to lethal temperature stress the default modeled curve was decreased by 0.5% and 1%. "}
 
@@ -194,39 +232,7 @@ ggplot(summary_GR, aes(x=pretty_scenario, y=ED_per_used, colour=pretty_scenario,
   
 ```
 
-
-```{r import dead table for percent dead across scenarios}
-# import in combined replicate DFs
-A12<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E12.csv", header=TRUE, sep=",")
-B12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F12.csv", header=TRUE, sep=",")
-C12<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus0.5/combined/E12.csv", header=TRUE, sep=",")
-D12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus0.5/combined/G12.csv", header=TRUE, sep=",")
-E12<-read.table("D:/Results_4Populations/gr_Columbia2017B_minus1/combined/F12.csv", header=TRUE, sep=",")
-F12<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_minus1/combined/H12.csv", header=TRUE, sep=",")
-
-names_v<-c("Default","Default without CWRs","Decrease survival by 0.5%","Decrease survival by 0.5% without CWRs","Decrease survival by 1%","Decrease survival by 1% without CWRs")
-
-```
-
-
-```{r create percent dead across scenarios kable}
-# number of simulated fish
-num_fish<-6000
-# get number of individuals died from acute temperature stress
-acute_A<-((dim(A12)[1])/ num_fish) * 100
-acute_B<-((dim(B12)[1])/ num_fish) * 100
-acute_C<-((dim(C12)[1])/ num_fish) * 100
-acute_D<-((dim(D12)[1])/ num_fish) * 100
-acute_E<-((dim(E12)[1])/ num_fish) * 100
-acute_F<-((dim(F12)[1])/ num_fish) * 100
-
-acute_v<-c( acute_A, acute_B, acute_C,acute_D, acute_E, acute_F)
-
-acute_all<-cbind.data.frame(names_v, acute_v)
-
-kable(acute_all, digits=3, col.names=c("Scenario", "Total mortality"), caption="Table 1. Model output for percent of individuals dying from acute temperature stress summarized for Grande Ronde River Summer Steelhead.")
-```
-
+#### *Arrival Timing*
 
 ```{r arrival timing PDF across scenarios}
 

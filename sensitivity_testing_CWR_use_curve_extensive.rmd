@@ -10,7 +10,7 @@ editor_options:
 Sensitivity analysis of how move to cold water refuge curve, in the Set Movement Behavior events, affects fish fitness metrics. Increased or decreased the probability of moving to cold water refuge across all the temperatures by (-0.003, -0.006, +0.003, + 0.006) for the whole curve for Grande Ronde River summer steelhead.
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(cowplot)
 library(data.table)
@@ -59,7 +59,90 @@ hourly_all <- rbind.data.frame(A14, B14, C14, D14, E14)
 ```
 
 
-#### *Survival*
+```{r import temp table, eval=TRUE, include=FALSE}
+# import table of water temperatures
+water_temps<-read.table("D:/HexSim_Models/CWR_Columbia/Columbia [small]/Analysis/Data Lookup/Columbia2017B_TribsCurrent.csv", header = FALSE, sep = ",")
+# first row is bonneville teemperature, drop all rows except first
+bonn_temp<-water_temps[2,]
+bonn_temp2<-t(bonn_temp) # transpose to long
+colnames(bonn_temp2)<-"bonn_temp" # change column name
+# add column for time step
+timestep<-seq(from=1,to=dim(bonn_temp2)[1],by=1) # create sequence for number of hours of temp
+#timestep<-seq(from=1, to=2928, by=1)
+temp<-cbind.data.frame(bonn_temp2, timestep)
+```
+
+
+```{r set up data for temp CWR use from bonn to JD, echo=FALSE}
+# vector of thermal patch IDs for bonneville to john day
+vc <- c(2,3,29,30,31,32,33,34,35,36,37,38,39, 40,41,42,43,44)
+# subset hourly data to include patches within the bonneville or dalles pools
+hourly_all_subset1<-filter(hourly_all, thermal_patch %in% vc)
+# summarize by individual total hours in CWR
+hourly_all_subset2<-aggregate(cwr_hrs_total~ID, data=hourly_all_subset1, sum)
+# add binary column for if used CWR or no
+hourly_all_subset2$refuge_use<-0
+hourly_all_subset2$refuge_use[hourly_all_subset2$cwr_hrs_total >12]<-1  
+#hourly_all_subset2$refuge_use<-as.factor(hourly_all_subset2$refuge_use)
+# aggregate to get one entry per ID for entry_time
+ID_entry_time<-aggregate(time_entry~ID+scenario, data=hourly_all,min)
+# get time_entry to be used to get entry temp
+hourly_all_subset3<-merge(hourly_all_subset2, ID_entry_time,by.x="ID", by.y="ID")
+hourly_all_subset3$scenario<-as.factor(hourly_all_subset3$scenario)
+# merge with Bonneville temperature dataset
+hourly_all_subset4<-merge(hourly_all_subset3, temp, by.x="time_entry", by.y="timestep")
+# convert to numeric
+hourly_all_subset4$bonn_temp<-as.numeric(as.character(hourly_all_subset4$bonn_temp))
+# create categorical temp bins from continuous bonn temps
+hourly_all_subset4$cat_temp<-cut(hourly_all_subset4$bonn_temp, breaks=c(-Inf,15,16,17,18,19,20,21,22,23,Inf), labels=c("15","16","17","18","19","20","21","22","23","GT23"))
+
+# get percent refuge use per entry temperature bin
+p_refuge_bonn_temp2<-aggregate(refuge_use ~ cat_temp + scenario, data=hourly_all_subset4, mean)
+
+```
+
+```{r}
+cwr_use_temp_mod_obs$id<-paste(cwr_use_temp_mod_obs$group, cwr_use_temp_mod_obs$scenario)
+
+p <- ggplot(p_refuge_bonn_temp2, aes(x = cat_temp, y = refuge_use, group=scenario) ) +
+        geom_line(size=0.75, aes(linetype=scenario, color=scenario))  +
+   labs( y="Percent Refuge Use (BON to JD)", x = "Bonneville Temperature on Entry (?C)") + 
+  theme_classic() + 
+  theme(axis.text.y = element_text(size=14), 
+        axis.text.x=element_text(size=14),
+        axis.title.x=element_text(size=14), 
+        axis.title.y=element_text(size=14), 
+        legend.text = element_text(size=14), 
+        legend.title = element_text(size=14))
+
+
+#+
+#  scale_linetype_manual(values=c("solid", "solid","longdash",  "longdash"))+
+#     scale_color_manual(values=c("#00FF00", "#6600CC", "#00FF00", "#6600CC"), name="")  
+ 
+p
+
+```
+
+cwr_use_temp_mod_obs$id<-paste(cwr_use_temp_mod_obs$group, cwr_use_temp_mod_obs$species)
+
+p <- ggplot(cwr_use_temp_mod_obs, aes(x = cat_temp, y = refuge_use, group=id) ) +
+        geom_line(size=0.75, aes(linetype=id, color=id))  +
+   labs( y="Percent Refuge Use (BON to JD)", x = "Bonneville Temperature on Entry (?C)") + 
+  theme_classic() + 
+  theme(axis.text.y = element_text(size=14), 
+        axis.text.x=element_text(size=14),
+        axis.title.x=element_text(size=14), 
+        axis.title.y=element_text(size=14), 
+        legend.text = element_text(size=14), 
+        legend.title = element_text(size=14),
+        legend.position = "none") +
+  scale_linetype_manual(values=c("solid", "solid","longdash",  "longdash"))+
+     scale_color_manual(values=c("#00FF00", "#6600CC", "#00FF00", "#6600CC"), name="")  
+ 
+p
+
+
 
 ```{r import dead table for percent dead across scenarios}
 # import in combined replicate DFs
@@ -185,8 +268,6 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE, conf.i
 ```
 
 
-#### *Energy Use*
-
 ```{r GR estimate mean plus error energy used}
 # for text wrapping
 var_width = 15
@@ -205,43 +286,59 @@ width1 = 4
 height1 = 3
 
 # plot
-ggplot(summary_GR, aes(x=pretty_scenario, y=ED_per_used, colour=pretty_scenario)) +
+ggplot(summary_GR, aes(x=pretty_scenario, y=ED_per_used)) +
   geom_errorbar(aes(ymin=ED_per_used - se, ymax=ED_per_used + se), width = 0.1, position=pd) +
   geom_point(position=pd) + 
   ylab("% Energy Density Used")+ xlab("")+
  #scale_color_manual(breaks=c("Chinook", "Steelhead"), values=c("red", "blue"))+
   theme_classic(base_size=10) + 
-  theme(legend.position = "none")+
-  scale_colour_manual(values=c("blue4", "green", "darkorange3", "purple", "brown"))
+  theme(legend.position = "none")
 ```
 
 
 
-```{r percent energy used boxplot, fig.cap="Fig. 2. Boxplot of modeled percent energy loss for Grande Ronde River summer steelhead with risk adverse behavioral thermoregulation. The factor modifies the move to cold water refuge probability based on model week in relation to maximum Columbia River temperature."}
+```{r arrival timing PDF across scenarios}
 
-width1 = 4
-height1 = 3
+# model starts on July 1 which is equivalent to julian day 182
+jday_start<-182
 
-# plot
-ggplot(all_GR2, aes(x=pretty_scenario, y=ED_per_used, colour=pretty_scenario)) +
-  geom_boxplot() + 
-  ylab("% Energy Density Used")+ xlab("")+
-  theme_classic(base_size=10) + 
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=14),legend.position = "none")+
-  scale_colour_manual(values=c("blue4", "green", "darkorange3", "purple", "brown"))
+# step is hour arrived at terminus
+# convert Step to julian day
+all_GR2$terminus_jday<-floor(all_GR2$Step / 24) + jday_start
+# convert julian day to date
+all_GR2$terminus_date_ch<-chron(all_GR2$terminus_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+all_GR2$terminus_date<- as.POSIXct(all_GR2$terminus_date_ch, "GMT") 
+
+# Time_entry is hour started from Bonneville
+# convert Step to julian day
+all_GR2$entry_jday<-floor(all_GR2$Time_entry / 24) + jday_start
+# convert julian day to date
+all_GR2$entry_date_ch<-chron(all_GR2$entry_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+all_GR2$entry_date<- as.POSIXct(all_GR2$entry_date_ch, "GMT") 
+
+```
+
+
+```{r pdf snake river arrival timing}
+# reorder scenarios for plot
+all_GR2$scenario<-as.factor(all_GR2$scenario)
+#all_GR2$scenario <- factor(all_GR2$scenario, levels=c("Decreased move to CWR by A", "Decreased move to CWR by B", "Current with CWRs", "Increased move to CWR by B", "Increased move to CWR by A"))
   
+p <- ggplot(data = all_GR2, aes(x = terminus_date, color=scenario)) + geom_density( alpha=0.5, size=1.25) + theme_classic()
+p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") +  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14)) +scale_linetype_manual(values=c(1,2,1,2,1))+
+   scale_color_manual(values=c("black", "red", "darkorange3", "darkblue", "cyan"))
+   
+
+# p <- ggplot(data = all_GR2, aes(x = terminus_date, linetype=as.factor(scenario),color=as.factor(scenario))) + geom_density( alpha=0.5, size=1.25) + theme_classic()
+# p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") +  theme(axis.text=element_text(size=14),
+#         axis.title=element_text(size=14)) +scale_linetype_manual(values=c(1,2,1,2,1))+
+#    scale_color_manual(values=c("blue4", "blue4", "darkorange3", "darkorange3", "green"))
 ```
 
 
-```{r energy lost table}
-ED_used_table<-aggregate(ED_per_used~scenario, data=all_GR, quantile)
-ED_used_table$scenario<-as.character(ED_used_table$scenario)
-ED_used_table<-format(ED_used_table, digits = 2)
-
-# create table with pretty format
-kable(ED_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Percent energy used across different HexSim thermalscapes summarized for Grande Ronde River Summer Steelhead.", digits=1)
-```
 
 
 

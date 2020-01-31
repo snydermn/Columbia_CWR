@@ -434,23 +434,50 @@ plot_grid( dur1, dur2, dur3, dur4,
           ncol = 1, nrow = 4)
 ```
 
+```{r regression}
+lm1<-lm(ED_per_used~Time_in_system_d + temp_1 + Time_entry+ Total_hours_cold_water, data=hourly_and_end_A)
+summary(lm1)
+```
+
+
 CONTOUR PLOT NEW NEED TO TEST
 ```{r time in system vs time in CWR contour plot3}
-data.loess <- loess(ED_per_used ~ Total_hours_cold_water * Time_in_system_d, data = hourly_and_end_A)
+
+data.loess <- loess(ED_per_used ~ Total_hours_cold_water * Time_in_system_d, data = hourly_and_end_A, span=0.75)
 Ygrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
-length(xgrid)
+length(Ygrid)
 Xgrid <-  seq(min(hourly_and_end_A$Total_hours_cold_water), max(hourly_and_end_A$Total_hours_cold_water), 30)
-length(ygrid)
+length(Xgrid)
 # Generate a dataframe with every possible combination of wt and hp
 data.fit <-  expand.grid( Total_hours_cold_water = Xgrid, Time_in_system_d = Ygrid)
 # Feed the dataframe into the loess model and receive a matrix output with estimates of
 # acceleration for each combination of wt and hp
 mtrx3d <-  predict(data.loess, newdata = data.fit)
+energy.z <- matrix(mtrx3d, length(Xgrid), length(Ygrid))
 zlim1<-min(hourly_and_end_A$ED_per_used)
 zlim2<-max(hourly_and_end_A$ED_per_used)
-contour(y = Ygrid, x = Xgrid, z = mtrx3d, zlim=c(zlim1, zlim2), labcex = 1.2, ylab = "Time migrating (d)", xlab ="Time in CWR (h)")
+image(Xgrid, Ygrid, energy.z)
+contour(y = Ygrid, x = Xgrid, z = energy.z,  zlim=c(zlim1, zlim2), labcex = 1.2, ylab = "Time migrating (d)", xlab ="Time in CWR (h)")
 ```
 
+```{r time in system vs time in CWR days contour plot4}
+# create total days in cold water
+hourly_and_end_A$Total_days_cold_water <- hourly_and_end_A$Total_hours_cold_water / 24
+# plot
+data.loess <- loess(ED_per_used ~ Total_days_cold_water + Time_in_system_d, data = hourly_and_end_A)
+Ygrid <-  seq(min(hourly_and_end_A$Time_in_system_d), max(hourly_and_end_A$Time_in_system_d), 2)
+length(Ygrid)
+Xgrid <-  seq(min(hourly_and_end_A$Total_days_cold_water), max(hourly_and_end_A$Total_days_cold_water), 1)
+length(Xgrid)
+# Generate a dataframe with every possible combination of wt and hp
+data.fit <-  expand.grid( Total_days_cold_water = Xgrid, Time_in_system_d = Ygrid)
+# Feed the dataframe into the loess model and receive a matrix output with estimates of
+# acceleration for each combination of wt and hp
+mtrx3d <-  predict(data.loess, newdata = data.fit)
+zlim1<-min(hourly_and_end_A$ED_per_used)
+zlim2<-max(hourly_and_end_A$ED_per_used)
+contour(y = Ygrid, x = Xgrid, z = mtrx3d, zlim=c(zlim1, zlim2), labcex = 1.2, ylab = "Time migrating (d)", xlab ="Time in CWR (d)", las=1)
+```
 
 
 

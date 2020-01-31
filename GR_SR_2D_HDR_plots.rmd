@@ -1,0 +1,432 @@
+---
+title: "GR and SR 2D HDR Plots"
+author: "MNSnyder"
+date: "1/29/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(lubridate)
+library(dplyr)
+library(plotly)
+library(GGally)
+library(doBy) # statistical summary function
+library(stringr)
+library(hdrcde)
+```
+
+Imports end condition data for combined replicates for 2 populations (Snake River Fall Chinook and Grande Ronde summer steelhead) for 4 scenarios which vary by thermalscape- 
+* Columbia 2017
+* Columbia 2017, no CWRs
+* Columbia 2017 + 1 degree
+* Columbia 2017 + 1 degree, no CWRs
+
+Creates a number of exploratory plots looking at how successful migration strategies decrease. 
+
+Ultimately used to create a faceted by scenario 2D HDR plot with smoothing showing how the successful migration strategy trait spaces contracts without CWRS and with hotter Columbia River temperatures. Migration strategy is characterized by entry timing related to the date of the maximum Columbia River temperature and the migration speed of individuals outside of CWRs (reservoir hours). 
+
+
+###################################
+Statistical Summary function
+
+```{r statistical summary function}
+## Summarizes data.
+## Gives count, mean, standard deviation, standard error of the mean, and confidence 
+## interval (default 95%).
+##   data: a data frame.
+##   measurevar: the name of a column that contains the variable to be summariezed
+##   groupvars: a vector containing names of columns that contain grouping variables
+##   na.rm: a boolean that indicates whether to ignore NA's
+##   conf.interval: the percent range of the confidence interval (default is 95%)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE, conf.interval=.95) {
+    library(doBy)
+
+    # New version of length which can handle NA's: if na.rm==T, don't count them
+    length2 <- function (x, na.rm=FALSE) {
+        if (na.rm) sum(!is.na(x))
+        else       length(x)
+    }
+
+    # Collapse the data
+    formula <- as.formula(paste(measurevar, paste(groupvars, collapse=" + "), sep=" ~ "))
+    datac <- summaryBy(formula, data=data, FUN=c(length2,mean,sd), na.rm=na.rm)
+
+    # Rename columns
+    names(datac)[ names(datac) == paste(measurevar, ".mean",    sep="") ] <- measurevar
+    names(datac)[ names(datac) == paste(measurevar, ".sd",      sep="") ] <- "sd"
+    names(datac)[ names(datac) == paste(measurevar, ".length2", sep="") ] <- "N"
+    
+    datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+    
+    # Confidence interval multiplier for standard error
+    # Calculate t-statistic for confidence interval: 
+    # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+    ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+    datac$ci <- datac$se * ciMult
+    
+    return(datac)
+}
+```
+
+#################################
+Import end condition data for 4 scenarios
+
+```{r GR import end condition data, eval=TRUE}
+# import in combined replicate DFs
+A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+C13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
+D13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(A13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(B13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(C13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+```
+
+```{r SR import end condition data, eval=TRUE}
+# import in combined replicate DFs
+E4<-read.table("D:/Results_4Populations/snake_Columbia2017B/combined/E4.csv", header=TRUE, sep=",")
+F4<-read.table("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F4.csv", header=TRUE, sep=",")
+G4<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G4.csv", header=TRUE, sep=",")
+H4<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H4.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(E4)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(F4)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(G4)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(H4)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+```
+
+
+#######################################
+Import temperature data
+```{r import temp table and format, eval=TRUE, include=FALSE}
+# import table of water temperatures
+water_temps<-read.table("D:/HexSim_Models/CWR_Columbia/Columbia [small]/Analysis/Data Lookup/Columbia2017B_TribsCurrent.csv", header = FALSE, sep = ",")
+
+```
+
+#####################
+Format data
+```{r format temperature data}
+# first row is bonneville teemperature, drop all rows except first
+bonn_temp<-water_temps[2,]
+bonn_temp2<-t(bonn_temp) # transpose to long
+colnames(bonn_temp2)<-"bonn_temp" # change column name
+# add column for time step
+timestep<-seq(from=1,to=dim(bonn_temp2)[1],by=1) # create sequence for number of hours of temp
+#timestep<-seq(from=1, to=2928, by=1)
+temp<-cbind.data.frame(bonn_temp2, timestep)
+# convert from factor to numeric
+temp$bonn_temp <- as.numeric(as.character(temp$bonn_temp))
+plot(bonn_temp2~timestep, data=temp, ylab="Bonneville Temperature", xlab=c("Model hour"))
+```
+
+
+```{r get maximum Bonneville temperature hour}
+# figure out what hottest temperature is
+max_temp<-max(temp$bonn_temp)
+# leave only hours in DF with highest temperature
+all_max_temps<-dplyr::filter(temp, bonn_temp2 == max_temp)
+# choose latest model hour of max temp
+row_no<-dim(all_max_temps)[1]
+max_temp_hour<-all_max_temps$timestep[4]
+```
+
+
+Create function to calculate:
+* Entry Timing
+* Total_hours_cold_water
+* time in system not in CWR = ReservoirH
+* Initial weight
+
+```{r function to calculate end condition metrics}
+
+# function to calculate cumulative degree days above a certain degree
+
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+# entry timing as related to maximum water temperature function
+
+entry_timing_f <- function(DF, temp_data){
+  # figure out what hottest temperature is
+  max_temp<-max(temp_data$bonn_temp)
+  # leave only hours in DF with highest temperature
+  all_max_temps<-dplyr::filter(temp_data, bonn_temp2 == max_temp)
+  # choose latest model hour of max temp
+  row_no<-dim(all_max_temps)[1]
+  # select one max temperature hour
+  max_temp_hour<-all_max_temps$timestep[row_no]
+  # get entry time value
+  DF$EntryTiming<-DF$Time_entry - max_temp_hour
+  #DF$EntryPeriod<-ifelse(DF$Time_entry < 1000, "A", ifelse(DF$Time_entry > 1800), "C", "B")
+  #as.factor(DF$EntryPeriod)
+  return(DF)
+}
+
+# combine functions into one function
+
+calculate_metrics <- function(DF, temp_data){
+  # calculate entry timing
+  A<-entry_timing_f(DF, temp_data)
+  # select columns
+  A_minus<-select(A, ID, EntryTiming)
+  
+  # calculate time in system outside CWR
+  DF$ReservoirH <- DF$Time_in_system - DF$Total_hours_cold_water
+  # rename total hours in CWR column
+  DF<-rename(DF, cwrH = Total_hours_cold_water)
+  # drop unnecessary columns
+  B_minus<-select(DF, ID, ReservoirH, cwrH, Initial_weight)
+  
+  # calculate % energy density lost
+  C<-avail_energy_diff(DF)
+  # drop unnecessary columns
+  C_minus<-select(C, ID, ED_per_used)
+  
+  # combine for final data
+  out1<-merge(A_minus, B_minus, by.x="ID", by.y="ID")
+  metrics_all<-merge(out1, C_minus, by.x="ID", by.y="ID")
+  
+  return(metrics_all)
+}
+
+
+```
+
+
+```{r GR calculate metrics}
+
+A_end <- calculate_metrics(A13, temp)
+A_end$scenario <- "Current with CWRs"
+
+B_end <- calculate_metrics(B13, temp)
+B_end$scenario <- "Current without CWRs"
+
+C_end <- calculate_metrics(C13, temp)
+C_end$scenario <- "Future with CWRs"
+
+D_end <- calculate_metrics(D13, temp)
+D_end$scenario <- "Future without CWRs"
+
+# combine all scenarios
+abcd_end<-rbind.data.frame(A_end, B_end, C_end, D_end)
+# convert scenario to factor
+abcd_end$scenario <- as.factor(abcd_end$scenario)
+
+# create winners
+abcd_win<-filter(abcd_end, ED_per_used < 25)
+```
+
+
+```{r SR calculate metrics}
+
+E_end <- calculate_metrics(E4, temp)
+E_end$scenario <- "Current with CWRs"
+
+F_end <- calculate_metrics(F4, temp)
+F_end$scenario <- "Current without CWRs"
+
+G_end <- calculate_metrics(G4, temp)
+G_end$scenario <- "Future with CWRs"
+
+H_end <- calculate_metrics(H4, temp)
+H_end$scenario <- "Future without CWRs"
+
+# combine all scenarios
+efgh_end<-rbind.data.frame(E_end, F_end, G_end, H_end)
+# convert scenario to factor
+efgh_end$scenario <- as.factor(efgh_end$scenario)
+
+# create winners
+# 25% quantile = 17.1% energy lost
+
+efgh_win<-filter(efgh_end, ED_per_used < 17)
+```
+
+
+
+```{r 2D HDR plots}
+#x <- c(rnorm(200,0,1),rnorm(200,4,1))
+#y <- c(rnorm(200,0,1),rnorm(200,4,1))
+#hdr.boxplot.2d(x,y)
+
+# sthd
+a_win_sthd<-filter(abcd_win, scenario == "Current with CWRs")
+b_win_sthd<-filter(abcd_win, scenario == "Current without CWRs")
+c_win_sthd<-filter(abcd_win, scenario == "Future with CWRs")
+d_win_sthd<-filter(abcd_win, scenario == "Future without CWRs")
+# chnk
+a_win_chnk<-filter(efgh_win, scenario == "Current with CWRs")
+b_win_chnk<-filter(efgh_win, scenario == "Current without CWRs")
+c_win_chnk<-filter(efgh_win, scenario == "Future with CWRs")
+d_win_chnk<-filter(efgh_win, scenario == "Future without CWRs")
+
+width1 = 2.75
+height1 = 5
+
+# 1. sthd 2017 with CWR
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/2DHDR/GR_migration_strategy_hdrA.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(xaxt="n", las=1)
+lablist.x<-as.vector(seq(-1000,1000, 500))
+xtick<-seq(-1000, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=a_win_sthd$EntryTiming, y=a_win_sthd$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(200, 600))
+axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+text(x = seq(-1000, 1000, by=500), par("usr")[3] - 10, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+# 2. sthd 2017 no CWR
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/2DHDR/GR_migration_strategy_hdrB.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(xaxt="n", las=1)
+lablist.x<-as.vector(seq(-1000,1000, 500))
+xtick<-seq(-1000, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=b_win_sthd$EntryTiming, y=b_win_sthd$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(200, 600))
+axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+text(x = seq(-1000, 1000, by=500), par("usr")[3] - 10, xtick, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+# 3. sthd 2040 w CWR
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/2DHDR/GR_migration_strategy_hdrC.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(xaxt="n", las=1)
+lablist.x<-as.vector(seq(-1000,1000, 500))
+xtick<-seq(-1000, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=c_win_sthd$EntryTiming, y=c_win_sthd$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(200, 600))
+axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+text(x = seq(-1000, 1000, by=500), par("usr")[3] - 10, xtick, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+# 4. sthd no CWR
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/2DHDR/GR_migration_strategy_hdrD.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(xaxt="n", las=1)
+lablist.x<-as.vector(seq(-1000,1000, 500))
+xtick<-seq(-1000, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=d_win_sthd$EntryTiming, y=d_win_sthd$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(200, 600))
+axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+text(x = seq(-1000, 1000, by=500), par("usr")[3] - 10, xtick, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+#### one with tick marks
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/2DHDR/GR_migration_strategy_hdr_tick.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+
+lablist.x<-as.vector(seq(-1000,1000, 500))
+xtick<-seq(-1000, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=d_win_sthd$EntryTiming, y=d_win_sthd$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(200, 600))
+axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+text(x = seq(-1000, 1000, by=500), par("usr")[3] - 10, xtick, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+################################
+## chnk
+# 1. chnk 2017 with CWR
+
+
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/2DHDR/SR_migration_strategy_hdrE.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(xaxt="n", yaxt='n',las=1)
+#lablist.x<-as.vector(seq(-500,1000, 500))
+#xtick<-seq(-500, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=a_win_chnk$EntryTiming, y=a_win_chnk$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(100, 400), xlim=c(-300,1000))
+#axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+#text(x = seq(-500, 1000, by=500), par("usr")[3] - 10, xtick, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+# 2. chnk 2017 no CWR
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/2DHDR/SR_migration_strategy_hdrF.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(xaxt="n", yaxt='n',las=1)
+#lablist.x<-as.vector(seq(-500,1000, 500))
+#xtick<-seq(-500, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=b_win_chnk$EntryTiming, y=b_win_chnk$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(100, 400), xlim=c(-300,1000))
+#axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+#text(x = seq(-500, 1000, by=500), par("usr")[3] - 10, xtick, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+# 3. chnk 2040 w CWR
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/2DHDR/SR_migration_strategy_hdrG.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(xaxt="n",yaxt='n', las=1)
+#lablist.x<-as.vector(seq(-500,1000, 500))
+#xtick<-seq(-500, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=c_win_chnk$EntryTiming, y=c_win_chnk$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(100, 400), xlim=c(-300,1000))
+#axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+#text(x = seq(-500, 1000, by=500), par("usr")[3] - 10, xtick, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+# 4. chnk no CWR
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/2DHDR/SR_migration_strategy_hdrH.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(xaxt="n", yaxt='n', las=1)
+#lablist.x<-as.vector(seq(-500,1000, 500))
+#xtick<-seq(-500, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=d_win_chnk$EntryTiming, y=d_win_chnk$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(100, 400), xlim=c(-300,1000))
+#axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+#text(x = seq(-500, 1000, by=500), par("usr")[3] - 10, xtick, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+# 5. chnk tick marks
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/2DHDR/SR_migration_strategy_hdr_tick.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(las=1)
+#lablist.x<-as.vector(seq(-500,1000, 500))
+#xtick<-seq(-500, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=b_win_chnk$EntryTiming, y=b_win_chnk$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(100, 400), xlim=c(-300,1000))
+#axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+#text(x = seq(-500, 1000, by=500), par("usr")[3] - 10, xtick, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+
+# png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/SR_migration_strategy_hdr.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+# # chnk
+# par(mfrow=c(2,2), mar=c(2,2,1,1)) # (bottom, left, top, right)
+# hdr.boxplot.2d(prob = c(50, 90, 95), x=a_win_chnk$EntryTiming, y=a_win_chnk$ReservoirH, ylab="Migration Time outside CWRs", ylim=c(100, 400))
+# hdr.boxplot.2d(prob = c(50, 90, 95), x=b_win_chnk$EntryTiming, y=b_win_chnk$ReservoirH, ylim=c(100, 400))
+# hdr.boxplot.2d(prob = c(50, 90, 95), x=c_win_chnk$EntryTiming, y=c_win_chnk$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylab="Migration Time outside CWRs", ylim=c(100, 400))
+# hdr.boxplot.2d(prob = c(50, 90, 95), x=d_win_chnk$EntryTiming, y=d_win_chnk$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylim=c(100, 400))
+# dev.off()
+
+
+
+#par(mfrow=c(1,2))
+#hdr.boxplot.2d(x=abcd_end$EntryTiming, y=abcd_end$ReservoirH)
+#hdr.boxplot.2d(x=abcd_win$EntryTiming, y=abcd_win$ReservoirH)
+
+hdr.boxplot.2d(x=efgh_end$EntryTiming, y=efgh_end$ReservoirH)
+hdr.boxplot.2d(x=efgh_win$EntryTiming, y=efgh_win$ReservoirH)
+
+
+```

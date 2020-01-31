@@ -410,7 +410,7 @@ d
 
 
 # d + stat_density_2d(aes(fill = stat(nlevel)), geom = "polygon") +
-  facet_grid(scenario ~ .) + scale_fill_viridis_c() 
+# facet_grid(scenario ~ .) + scale_fill_viridis_c() 
 #+geom_hline(aes(yintercept =350, col="red" ))
 ```
 
@@ -485,16 +485,39 @@ b_win_chnk<-filter(efgh_win, scenario == "Current without CWRs")
 c_win_chnk<-filter(efgh_win, scenario == "Future with CWRs")
 d_win_chnk<-filter(efgh_win, scenario == "Future without CWRs")
 
-width1 = 7
-height1 = 7
+width1 = 3
+height1 = 5
 
+# 1. sthd 2017 with CWR
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/GR_migration_strategy_hdrA.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(xaxt="n", las=1)
+lablist.x<-as.vector(seq(-1000,1000, 500))
+xtick<-seq(-1000, 1000, by=500)
+
+hdr.boxplot.2d(prob = c(50, 90, 95), x=a_win_sthd$EntryTiming, y=a_win_sthd$ReservoirH, ylab="Migration Time (Outside Cold Water Refuges)", ylim=c(200, 600))
+axis(side=1, at=lablist.x,labels=FALSE, tick=TRUE, lwd.ticks=3)
+text(x = seq(-1000, 1000, by=500), par("usr")[3] - 10, xtick, labels = lablist.x, srt = 45, pos = 1, xpd = TRUE)
+
+dev.off()
+
+# 2. sthd 2017 no CWR
 png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/GR_migration_strategy_hdr.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
 # sthd
-par(mfrow=c(2,2), mar=c(2,2,1,1)) # (bottom, left, top, right)
-hdr.boxplot.2d(prob = c(50, 90, 100), x=a_win_sthd$EntryTiming, y=a_win_sthd$ReservoirH, ylab="Migration Time outside CWRs", ylim=c(200, 600))
-hdr.boxplot.2d(prob = c(50, 90, 100), x=b_win_sthd$EntryTiming, y=b_win_sthd$ReservoirH, ylim=c(200, 600))
-hdr.boxplot.2d(prob = c(50, 90, 100), x=c_win_sthd$EntryTiming, y=c_win_sthd$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylab="Migration Time outside CWRs", ylim=c(200, 600))
-hdr.boxplot.2d(prob = c(50, 90, 100), x=d_win_sthd$EntryTiming, y=d_win_sthd$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylim=c(200, 600))
+par(mfrow=c(1,4), mar=c(2,2,1,1), cex=1.15, las=1) # (bottom, left, top, right)
+hdr.boxplot.2d(prob = c(50, 90, 95), x=b_win_sthd$EntryTiming, y=b_win_sthd$ReservoirH, ylim=c(200, 600))
+dev.off()
+
+# 3. sthd 2040 w CWR
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/GR_migration_strategy_hdr.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+hdr.boxplot.2d(prob = c(50, 90, 95), x=c_win_sthd$EntryTiming, y=c_win_sthd$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylab="Migration Time outside CWRs", ylim=c(200, 600))
+par(mfrow=c(1,4), mar=c(2,2,1,1), cex=1.15, las=1) # (bottom, left, top, right)
+dev.off()
+
+# 4. sthd no CWR
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/GR_migration_strategy_hdr.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+# sthd
+par(mfrow=c(1,4), mar=c(2,2,1,1), cex=1.15, las=1) # (bottom, left, top, right)
+hdr.boxplot.2d(prob = c(50, 90, 95), x=d_win_sthd$EntryTiming, y=d_win_sthd$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylim=c(200, 600))
 dev.off()
 
 png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/SR_migration_strategy_hdr.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
@@ -505,6 +528,8 @@ hdr.boxplot.2d(prob = c(50, 90, 95), x=b_win_chnk$EntryTiming, y=b_win_chnk$Rese
 hdr.boxplot.2d(prob = c(50, 90, 95), x=c_win_chnk$EntryTiming, y=c_win_chnk$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylab="Migration Time outside CWRs", ylim=c(100, 400))
 hdr.boxplot.2d(prob = c(50, 90, 95), x=d_win_chnk$EntryTiming, y=d_win_chnk$ReservoirH, xlab="Entry Time (in relation to maximum temperature)", ylim=c(100, 400))
 dev.off()
+
+
 
 #par(mfrow=c(1,2))
 #hdr.boxplot.2d(x=abcd_end$EntryTiming, y=abcd_end$ReservoirH)
