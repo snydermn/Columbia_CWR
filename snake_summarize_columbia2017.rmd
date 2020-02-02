@@ -644,7 +644,6 @@ yaxis1<-5000
 yaxis2<-12000
 ```
 
-summary(E14_winners$refuge_name2.y)
 ```{r plot winners 4}
 
 step_refuge_win2<-ggplot(E14_winners, aes(x=step_date, y=energy, color=refuge_name2.y)) +   
@@ -656,7 +655,6 @@ step_refuge_win2<-ggplot(E14_winners, aes(x=step_date, y=energy, color=refuge_na
 #step_refuge_win2 
 ```
 
-summary(E14_losers$refuge_name2.y)
 ```{r plot losers 4}
 step_refuge_loser2<-ggplot(E14_losers, aes(x=step_date, y=energy, color=refuge_name2.y)) +   
   geom_point() + xlim( as.POSIXct("2019-07-01 17:00:00"), as.POSIXct("2019-11-01 17:00:00")) + ylim(yaxis1,yaxis2) +

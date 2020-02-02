@@ -1,0 +1,318 @@
+---
+title: "arrival timing histogram"
+author: "MNSnyder"
+date: "2/1/2020"
+output: html_document
+---
+
+
+Grande Ronde summer steelhead Columbia River temperature time series from 2017. 
+4 scenarios included:
+
+* Columbia River 2017
+* Columbia River 2017, no CWRs
+* Columbia River 2017 plus 1
+* Columbia River 2017 plus 1, no CWRs
+
+Snake River fall Chinook Columbia River temperature time series from 2017. 
+4 scenarios included:
+
+* Columbia River 2017
+* Columbia River 2017, no CWRs
+* Columbia River 2017 plus 1
+* Columbia River 2017 plus 1, no CWRs
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(readr)
+library(lubridate)
+```
+
+
+```{r import end condition}
+# import in combined replicate DFs
+A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+C13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
+D13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(A13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(B13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(C13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+```
+
+
+```{r created energy used for all scenarios without gamete}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+A13<-avail_energy_diff(A13)
+B13<-avail_energy_diff(B13)
+C13<-avail_energy_diff(C13)
+D13<-avail_energy_diff(D13)
+
+# add scenario identifying column
+A13$scenario<-"A"
+B13$scenario<-"B"
+C13$scenario<-"C"
+D13$scenario<-"D"
+
+# combine DFs 
+all_13<-rbind.data.frame(A13, B13, C13, D13)
+```
+
+
+
+
+
+
+
+```{r time in system histogram}
+# all_13$Time_in_system_d<-all_13$Time_in_system / 24
+# all_13_labels<-all_13
+# # vector of scenario labels
+# all_13_labels$scenario<-as.factor(all_13_labels$scenario)
+# levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="A"] <-"Columbia 2017, CWR Current"
+# levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="B"] <-"Columbia 2017, No CWR"
+# levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="C"] <-"Columbia 2040 (2017), CWR Current"
+# levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="D"] <-"Columbia 2040 (2017), No CWR"
+
+
+#v_names<-c("Columbia 2040- CWR Current", "Columbia Restored- CWR Current","Columbia Current- CWR Current", "Columbia #Current- CWR Restored", "Columbia 2040- No CWRs", "Columbia Restored- No CWRs","Columbia Current- No CWRs" )
+#p <- ggplot(data = all_13_labels, aes(x = Time_in_system_d, group = scenario)) + geom_histogram(binwidth = 5)
+#p + facet_wrap(~scenario) + labs(x="Passage time (d)", y="Count", title="Grande Ronde River Summer Steelhead")
+
+```
+
+
+
+
+
+
+```{r terminus arrival histogram preparation}
+# model starts on July 1 which is equivalent to julian day 182
+jday_start<-182
+
+# step is hour arrived at terminus
+# convert Step to julian day
+all_13_labels$terminus_jday<-floor(all_13_labels$Step / 24) + jday_start
+# convert julian day to date
+all_13_labels$terminus_date_ch<-chron(all_13_labels$terminus_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+all_13_labels$terminus_date<- as.POSIXct(all_13_labels$terminus_date_ch, "GMT") 
+
+# Time_entry is hour started from Bonneville
+# convert Step to julian day
+all_13_labels$entry_jday<-floor(all_13_labels$Time_entry / 24) + jday_start
+# convert julian day to date
+all_13_labels$entry_date_ch<-chron(all_13_labels$entry_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+all_13_labels$entry_date<- as.POSIXct(all_13_labels$entry_date_ch, "GMT") 
+
+# filter into two different datasets
+sub1<-dplyr::filter(all_13_labels, scenario == "Columbia 2017, CWR Current" | scenario == "Columbia 2017, No CWR" )
+sub2<-dplyr::filter(all_13_labels, scenario == "Columbia 2040 (2017), CWR Current" | scenario == "Columbia 2040 (2017), No CWR" )
+
+```
+
+```{r terminus arrival histogram}
+# histograms
+# 2017 temperature Columbia River
+# p <- ggplot(data = sub1, aes(x = terminus_date,  fill=scenario)) + geom_histogram(position="dodge") + theme_classic()
+# p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") + 
+#   scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9")) + 
+#   scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"),labels=c("Columbia 2017", "Columbia 2017 / No CWR"))+
+#   theme(axis.text=element_text(size=14),
+#         axis.title=element_text(size=14),
+#         legend.text = element_text(size=14), legend.position = c(.95, .95),
+#   legend.justification = c("right", "top"))
+# 
+# # 2040 temperature Columbia River
+# q <- ggplot(data = sub2, aes(x = terminus_date,  fill=scenario)) + geom_histogram(position="dodge") + theme_classic()
+# q +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") + 
+#   scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9")) + 
+#   scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"),labels=c("Columbia 2040", "Columbia 2040 / No CWR"))+
+#   theme(axis.text=element_text(size=14),
+#         axis.title=element_text(size=14),
+#         legend.text = element_text(size=14), legend.position = c(.95, .95),
+#   legend.justification = c("right", "top"))
+
+```
+
+
+```{r GR density}
+p <- ggplot(data = all_13_labels, aes(x = terminus_date, group=scenario)) + geom_density( aes(linetype = scenario, color=scenario), size=1) + theme_classic()+
+  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") +
+  scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"),labels = c("Current with CWRs", "Current without CWRs", "Future with CWRs", "Future without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))  +
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14),
+        legend.text = element_text(size=14), legend.position = "none",
+  legend.justification = c("right", "top"), legend.title = element_blank())
+```
+
+
+```{r terminus arrival density plot}
+# histograms
+# 2017 temperature Columbia River
+# p <- ggplot(data = sub1, aes(x = terminus_date, fill=scenario)) + geom_density( alpha=0.5) + theme_classic()
+# p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") + 
+#   scale_color_manual(values=c("darkorange3", "blue4")) + 
+#   scale_fill_manual(values=c( "darkorange3", "blue4"),labels=c("Columbia 2017", "Columbia 2017 / No CWR")) +
+#   theme(axis.text=element_text(size=14),
+#         axis.title=element_text(size=14),
+#         legend.text = element_text(size=14), legend.position = c(.95, .95),
+#   legend.justification = c("right", "top"))
+# 
+# # 2040 temperature Columbia River
+# p <- ggplot(data = sub2, aes(x = terminus_date, fill=scenario)) + geom_density( alpha=0.5) + theme_classic()
+# p +  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") + 
+#   scale_color_manual(values=c("darkorange3", "blue4")) + 
+#   scale_fill_manual(values=c( "darkorange3", "blue4"),labels=c("Columbia 2040", "Columbia 2040 / No CWR")) +
+#   theme(axis.text=element_text(size=14),
+#         axis.title=element_text(size=14),
+#         legend.text = element_text(size=14), legend.position = c(.95, .95),
+#   legend.justification = c("right", "top"))
+
+```
+
+
+####################################################################
+###################################################################
+# SNAKE RIVER
+
+
+```{r import end condition}
+# import in combined replicate DFs
+A13sr<-read.table("D:/Results_4Populations/snake_Columbia2017B/combined/E4.csv", header=TRUE, sep=",")
+B13sr<-read.table("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F4.csv", header=TRUE, sep=",")
+C13sr<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G4.csv", header=TRUE, sep=",")
+D13sr<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H4.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(A13sr)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(B13sr)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(C13sr)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(D13sr)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+```
+
+
+```{r created energy used for all scenarios without gamete}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+A13sr<-avail_energy_diff(A13sr)
+B13sr<-avail_energy_diff(B13sr)
+C13sr<-avail_energy_diff(C13sr)
+D13sr<-avail_energy_diff(D13sr)
+
+# add scenario identifying column
+A13sr$scenario<-"A"
+B13sr$scenario<-"B"
+C13sr$scenario<-"C"
+D13sr$scenario<-"D"
+
+# combine DFs 
+all_13sr<-rbind.data.frame(A13sr, B13sr, C13sr, D13sr)
+```
+
+```{r time in system histogram}
+all_13sr$Time_in_system_d<-all_13sr$Time_in_system / 24
+all_13_labelssr<-all_13sr
+# vector of scenario labels
+all_13_labelssr$scenario<-as.factor(all_13_labelssr$scenario)
+levels(all_13_labelssr$scenario)[levels(all_13_labelssr$scenario)=="A"] <-"Columbia 2017, CWR Current"
+levels(all_13_labelssr$scenario)[levels(all_13_labelssr$scenario)=="B"] <-"Columbia 2017, No CWR"
+levels(all_13_labelssr$scenario)[levels(all_13_labelssr$scenario)=="C"] <-"Columbia 2040 (2017), CWR Current"
+levels(all_13_labelssr$scenario)[levels(all_13_labelssr$scenario)=="D"] <-"Columbia 2040 (2017), No CWR"
+
+
+# p <- ggplot(data = all_13_labelssr, aes(x = Time_in_system_d)) + geom_histogram(binwidth = 5)
+# p + facet_wrap(~scenario) + labs(x="Passage time (d)", y="Count", title="Snake River fall Chinook")
+
+```
+
+```{r terminus arrival histogram preparation}
+# rename
+sr<-all_13_labelssr
+# model starts on July 1 which is equivalent to julian day 182
+jday_start<-182
+
+# step is hour arrived at terminus
+# convert Step to julian day
+sr$terminus_jday<-floor(sr$Step / 24) + jday_start
+# convert julian day to date
+sr$terminus_date_ch<-chron(sr$terminus_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+sr$terminus_date<- as.POSIXct(sr$terminus_date_ch, "GMT") 
+
+# Time_entry is hour started from Bonneville
+# convert Step to julian day
+sr$entry_jday<-floor(sr$Time_entry / 24) + jday_start
+# convert julian day to date
+sr$entry_date_ch<-chron(sr$entry_jday, origin=c(month=1, day=1, year=2019))
+# convert date format to posixct
+sr$entry_date<- as.POSIXct(sr$entry_date_ch, "GMT") 
+
+# filter into two different datasets
+sub1<-dplyr::filter(sr, scenario == "Columbia 2017, CWR Current" | scenario == "Columbia 2017, No CWR" )
+sub2<-dplyr::filter(sr, scenario == "Columbia 2040 (2017), CWR Current" | scenario == "Columbia 2040 (2017), No CWR" )
+```
+
+
+
+```{r GR density}
+z <- ggplot(data = sr, aes(x = terminus_date, group=scenario)) + geom_density( aes(linetype = scenario, color=scenario), size=1) + theme_classic()+
+  labs(x="Exit Day", y="Count", fill="", title="Snake River Fall Chinook Salmon") +
+  scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"),labels = c("Current with CWRs", "Current without CWRs", "Future with CWRs", "Future without CWRs"))+
+  scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))  +
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14),
+        legend.text = element_text(size=14), legend.position = "none",
+  legend.justification = c("right", "top"), legend.title = element_blank())
+
+z
+```
+
+```{r export plots}
+res1 = 300
+width1 = 6
+height1 = 4
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/arrival timing/SR_hist_arrival.png", res=res1, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(mar=c(6, 4, 4, 2) + 0.5)
+ z
+dev.off() 
+
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/arrival timing/GR_hist_arrival.png", res=res1, width=width1, height=height1, units="in", type="windows", antialias = "none")
+par(mar=c(6, 4, 4, 2) + 0.1)
+ p
+dev.off() 
+```
+
+
+
