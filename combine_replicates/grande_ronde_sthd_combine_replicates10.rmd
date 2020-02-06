@@ -1,0 +1,89 @@
+---
+title: "Combine replicates Grande Ronde summer steelhead acute temperature stress"
+author: "MNSnyder"
+date: "2/5/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+library(readr)
+library(tidyverse)
+library(reshape2)
+library(ggplot2)
+library(knitr)
+library(lubridate)
+library(plyr)
+library(data.table)
+```
+
+
+Sensitivity analysis of how the acute temperature survival curve effects mortality of Grande Ronde River summer steelhead.
+
+## Grande Ronde River summer steelhead combine replicates. 
+Combines repliate output for 1 scenarios- 
+* gr_Columbia2017B_surv_LC50
+
+Combines Data Probe model outputs for replicate model runs into one DF. Unique ID values are created by concatenating ID value with replicate number. 
+
+Need to specify path to individual replicate for a HexSim model run. 
+
+## Columbia Current with CWRs 0.005
+```{r gr_Columbia2017B_mvmt_minusA set up path to each replicate model run}
+path1<-"D:/Results_4Populations/gr_Columbia2017B_surv_LC50/gr_Columbia2017B_surv_LC50-[1]/Data Probe/"
+path2<-"D:/Results_4Populations/gr_Columbia2017B_surv_LC50/gr_Columbia2017B_surv_LC50-[2]/Data Probe/"
+path3<-"D:/Results_4Populations/gr_Columbia2017B_surv_LC50/gr_Columbia2017B_surv_LC50-[3]/Data Probe/"
+
+```
+
+For each replicate imports all CSVs in Data Probe folder into a list of tibbles. Each path defined above needs to be specified below to read in CSVs and create new unique ID.
+```{r gr_Columbia2017B_surv_LC50 create unique ID for each CSV for replicates}
+## creates a list of tibbles of all CSVs in directory
+files1 <- list.files(path = path1, pattern = '.csv$', full.names = T) %>%
+  map(read_csv)
+#adds a new ID column with original ID and replicate concatenated
+for (e in 1:length(files1)){
+   files1[[e]]$test1<-rep(1, length(files1[[e]]$ID))
+   files1[[e]]$test<-paste(files1[[e]]$ID,files1[[e]]$test1, sep="_")
+  }
+
+##
+files2 <- list.files(path = path2, pattern = '.csv$', full.names = T) %>%
+  map(read_csv)
+# adds a new ID column with original ID and replicate concatenated
+for (e in 1:length(files2)){
+  files2[[e]]$test1<-rep(2, length(files2[[e]]$ID))
+  files2[[e]]$test<-paste(files2[[e]]$ID,files2[[e]]$test1, sep="_")
+}
+
+##
+files3 <- list.files(path = path3, pattern = '.csv$', full.names = T) %>%
+  map(read_csv)
+# adds a new ID column with original ID and replicate concatenated
+for (e in 1:length(files3)){
+  files3[[e]]$test1<-rep(3, length(files3[[e]]$ID))
+  files3[[e]]$test<-paste(files3[[e]]$ID,files3[[e]]$test1, sep="_")
+}
+
+```
+
+Need to specify lists to be combined below (files1, files2, files3). Drops intermediate columns used to create unique ID and re-orders columns to match original order of columns.
+```{r gr_Columbia2017B_surv_LC50 combine like replicate DFs from lists into individual DFs}
+#### combine tibbles from different lists into DF ####
+# creates DF A1 through A17
+# create combined folder before running
+dir.create("D:/Results_4Populations/gr_Columbia2017B_surv_LC50/combined/")
+setwd("D:/Results_4Populations/gr_Columbia2017B_surv_LC50/combined/")
+
+for (f in 1:length(files1)){
+  nam <- paste("E", f, sep = "")
+  outDF<-rbind(files1[[f]], files2[[f]],  files3[[f]]) # combine tibbles from different lists into DF
+  outDF2<-select(outDF, -test1, -ID) # drop intermediate columns
+  outDF2<-dplyr::rename(outDF2, ID=test) # rename new ID column
+  outDF2<-select(outDF2, Run, Step, Population, ID, everything()) # put new ID column in same location as old
+  assign(nam, outDF2) # name DF based on order in CSV list
+  fwrite(outDF2, file=paste0(nam, ".csv"),   sep = ",")
+  }
+```

@@ -1,0 +1,200 @@
+---
+title: 'Sensitivity testing: acute temperature stress'
+author: "MNSnyder"
+date: "2/5/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+To evaluate uncertainty around how acute temperature stress influences fish fitness outcomes we ran a Sensitivity analysis of the acute temperature stress curve. We modeled the Grande Ronde Summer Steelhead population because of their large range in propensity to behaviorally thermoregulate. Sensitivity tests were based on a typical recent temperature year (2017) for the Columbia River. The effect of changing the shape of the temperature stress survival curve was measured on fish fitness outcomes including the percent mortality and overall energy used. The curve was estimated using an exponential relationship with LC10 and LC50 values from Jager et al. 2011.   
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(lubridate)
+library(dplyr)
+library(plotly)
+library(GGally)
+library(doBy) # statistical summary function
+library(stringr)
+```
+
+
+```{r import end condition}
+# import in combined replicate DFs
+A_end<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+B_end<-read.table("D:/Results_4Populations/gr_Columbia2017B_acute_exp/combined/E13.csv", header=TRUE, sep=",")
+
+# rename columns
+rename_end_condition <-function(DF){
+  names(DF)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+  return(DF)
+}
+
+A_end <- rename_end_condition(A_end)
+B_end <- rename_end_condition(B_end)
+
+```
+
+
+```{r created energy used for all scenarios without gamete}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+A_end<-avail_energy_diff(A_end)
+B_end<-avail_energy_diff(B_end)
+
+
+# add scenario identifying column
+A_end$scenario<-"Default"
+B_end$scenario<-"Test"
+
+
+# combine DFs 
+all_GR<-rbind.data.frame(A_end, B_end)
+```
+
+
+```{r statistical summary function}
+## Summarizes data.
+## Gives count, mean, standard deviation, standard error of the mean, and confidence 
+## interval (default 95%).
+##   data: a data frame.
+##   measurevar: the name of a column that contains the variable to be summariezed
+##   groupvars: a vector containing names of columns that contain grouping variables
+##   na.rm: a boolean that indicates whether to ignore NA's
+##   conf.interval: the percent range of the confidence interval (default is 95%)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE, conf.interval=.95) {
+    library(doBy)
+
+    # New version of length which can handle NA's: if na.rm==T, don't count them
+    length2 <- function (x, na.rm=FALSE) {
+        if (na.rm) sum(!is.na(x))
+        else       length(x)
+    }
+
+    # Collapse the data
+    formula <- as.formula(paste(measurevar, paste(groupvars, collapse=" + "), sep=" ~ "))
+    datac <- summaryBy(formula, data=data, FUN=c(length2,mean,sd), na.rm=na.rm)
+
+    # Rename columns
+    names(datac)[ names(datac) == paste(measurevar, ".mean",    sep="") ] <- measurevar
+    names(datac)[ names(datac) == paste(measurevar, ".sd",      sep="") ] <- "sd"
+    names(datac)[ names(datac) == paste(measurevar, ".length2", sep="") ] <- "N"
+    
+    datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+    
+    # Confidence interval multiplier for standard error
+    # Calculate t-statistic for confidence interval: 
+    # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+    ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+    datac$ci <- datac$se * ciMult
+    
+    return(datac)
+}
+```
+
+
+```{r GR plot mean plus error energy used}
+# for text wrapping
+#var_width = 15
+#all_GR2 <- mutate(all_GR, pretty_scenario = stringr::str_wrap(scenario, width = var_width))
+
+summary_GR<-summarySE(all_GR, measurevar = "ED_per_used", groupvars = c( "scenario"))
+
+```
+
+```{r import dead table for percent dead across scenarios}
+# import in combined replicate DFs
+A_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E12.csv", header=TRUE, sep=",")
+B_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B_acute_exp/combined/E12.csv", header=TRUE, sep=",")
+
+names_v<-c("Default","Test")
+
+```
+
+#### *Survival*
+
+A small decrease in survival across all temperatures can translate into a disproporionately higher number of deceased fish because the probability of survivorship is calculated every 24 h. 
+
+```{r create percent dead across scenarios kable}
+# number of simulated fish
+num_fish<-6000
+# get number of individuals died from acute temperature stress
+acute_A<-((dim(A_dead)[1])/ num_fish) * 100
+acute_B<-((dim(B_dead)[1])/ num_fish) * 100
+
+acute_v<-c( acute_A, acute_B)
+
+acute_all<-cbind.data.frame(names_v, acute_v)
+
+kable(acute_all, digits=1, col.names=c("Scenario", "Total mortality"), caption="Table 1. Model output for percent of individuals dying from acute temperature stress summarized for Grande Ronde River Summer Steelhead.")
+```
+
+
+#### *Energy Use*
+
+```{r percent energy used plot, fig.cap="Fig. 1. Fish fitness model outcomes for the population showing mean (±SE) percent of energy used.  "}
+
+# change order of scenarios for plot
+summary_GR$scenario <- factor(summary_GR$scenario, levels=c("Default","Test"))
+
+
+# for plot position dodging
+pd <- position_dodge(0.1) # move them .05 to the left and right
+
+width1 = 4
+height1 = 3
+
+# plot
+ggplot(summary_GR, aes(x=scenario, y=ED_per_used, colour=scenario)) +
+  geom_errorbar(aes(ymin=ED_per_used - ci, ymax=ED_per_used + ci), width = 0.1, position=pd, size=1.25) +
+  geom_point(position=pd, size=2) + 
+  ylab("% Energy Density Used")+ xlab("")+
+  theme_classic(base_size=10) + 
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14),legend.position = "none")+
+  scale_colour_manual(values=c("blue4", "green"))
+  
+```
+
+
+```{r percent energy used boxplot, fig.cap="Fig. 2. Boxplot of modeled percent energy loss for Grande Ronde River summer steelhead with risk adverse behavioral thermoregulation. The factor modifies the move to cold water refuge probability based on model week in relation to maximum Columbia River temperature."}
+
+width1 = 4
+height1 = 3
+
+# plot
+ggplot(all_GR, aes(x=scenario, y=ED_per_used, colour=scenario)) +
+  geom_boxplot() + 
+  ylab("% Energy Density Used")+ xlab("")+
+  theme_classic(base_size=10) + 
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14),legend.position = "none")+
+  scale_colour_manual(values=c("blue4", "green"))
+  
+```
+
+
+```{r energy lost table}
+ED_used_table<-aggregate(ED_per_used~scenario, data=all_GR, quantile)
+ED_used_table$scenario<-as.character(ED_used_table$scenario)
+ED_used_table<-format(ED_used_table, digits = 2)
+
+# create table with pretty format
+kable(ED_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Percent energy used across different acute temperature stress curves summarized for Grande Ronde River Summer Steelhead.", digits=1)
+```
+
