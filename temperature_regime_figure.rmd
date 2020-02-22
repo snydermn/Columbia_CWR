@@ -1,0 +1,133 @@
+---
+title: "temperature time series figure"
+author: "MNSnyder"
+date: "2/10/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(lubridate)
+library(dplyr)
+library(plotly)
+library(GGally)
+library(doBy) # statistical summary function
+library(stringr)
+library(readr)
+```
+
+
+```{r import temperature table}
+Columbia2017B_TribsCurrent <- read_csv("D:/HexSim_Models/CWR_Columbia/Columbia [small]/Analysis/Data Lookup/Columbia2017B_TribsCurrent.csv")
+water_temp <- Columbia2017B_TribsCurrent
+```
+
+
+```{r format temperature data}
+
+water_temp_2<-t(water_temp) # transpose to long
+# drop first row
+water_temp_2 <- water_temp_2[-1,]
+# change column names
+colnames(water_temp_2)<-c("Below Bonneville Dam", "Bonneville Pool", "The Dalles Pool", "John Day Pool", "Above McNary", "Skamokawa Creek", "Skamokawa Plume", "Mill Creek", "Abernethy Creek", "Abernethy Plume", "Germany Creek", "Cowlitz River", "Cowlitz Plume", "Kalama River", "Kalama Plume", "Lewis River", "Lewis Plume", "Sandy River", "Sandy Plume", "Washougal River", "Washougal Plume", "Bridal Veil Creek", "Bridal Veil Plume", "Wahkeena Creek", "Oneonta Creek", "Oneonta Plume", "Tanner Creek", "Tanner Plume", "Eagle Creek", "Eagle Plume", "Rock Creek", "Rock Plume", "Herman Creek ", "Herman Plume", "Wind River", "Wind Plume", "Little White Salmon River", "Little White Salmon Plume", "White Salmon River", "White Salmon Plume", "Klickitat River", "Klickitat Plume", "Deschutes River", "Deschutes Plume", "Umatilla River")
+# add column for time step
+#timestep<-seq(from=1,to=dim(water_temp_l)[1],by=1) # create sequence for number of hours of temp
+Step<-seq(from=1, to=2975, by=1)
+temp<-cbind.data.frame(water_temp_2, Step)
+
+# plot
+#plot(water_temp_l~timestep, data=temp, ylab="Bonneville Temperature", xlab=c("Model hour"))
+```
+
+
+```{r function to create date time sequence from model hour}
+
+date_time_f <- function(DF){
+# create date time sequence
+date_time<-seq(ymd_hm("2017-7-1 0:00"), ymd_hm("2017-10-31 12:00"), by = "hour")
+# create sequence for model hour
+hour_seq<-seq(1,2941, by=1)
+# combine
+date_time_df<-cbind.data.frame(hour_seq, date_time)
+# merge with hourly DF
+DF2<-merge(DF, date_time_df, by.x="Step", by.y="hour_seq")
+return(DF2)
+}
+
+temp2 <- date_time_f(temp)
+```
+
+
+
+
+```{r}
+# convert wide to long for plotting
+temp3 <- melt(temp2, "date_time")
+# drop 'step' variable
+temp4 <- temp3[temp3$variable != "Step", ]
+# subset to reaches of interest
+vc<-c( "Bonneville Pool", "The Dalles Pool", "John Day Pool", "Above McNary", "Eagle Creek", "Rock Creek", "Herman Creek ", "Wind River", "Little White Salmon River", "White Salmon River", "Klickitat River", "Deschutes River",  "Umatilla River")
+temp5 <- filter(temp4, variable %in% vc)
+
+
+temp5$variable <- factor(temp5$variable, c( "Eagle Creek", "Rock Creek", "Herman Creek ", "Wind River", "Little White Salmon River", "White Salmon River", "Klickitat River", "Deschutes River",  "Umatilla River", "Bonneville Pool", "The Dalles Pool", "John Day Pool", "Above McNary"))
+```
+
+
+```{r summarize temperature per day for simple plot}
+temp5$jd <- yday(temp5$date_time)
+
+mean_daily_temp <- temp5 %>% 
+  group_by(jd, variable) %>%
+  summarize(mean_daily = mean(value))
+
+date_time_f <- function(DF){
+# create date time sequence
+date_time<-seq(ymd_hm("2017-7-1 0:00"), ymd_hm("2017-10-31 12:00"), by = "day")
+# create sequence for model hour
+jday_seq<-seq(182,304, by=1)
+# combine
+date_time_df<-cbind.data.frame(jday_seq, date_time)
+# merge with hourly DF
+DF2<-merge(DF, date_time_df, by.x="jd", by.y="jday_seq")
+return(DF2)
+}
+
+
+temp6 <- date_time_f(mean_daily_temp)
+```
+
+```{r plot daily mean temperature}
+# without legend
+ggplot(temp6, aes(x = date_time, y = mean_daily, group = variable )) +
+  geom_line(aes(color=variable, linetype=variable), size=1.5)+
+  ylab("Temperature (°C)")+ xlab("")+
+  scale_linetype_manual(name="", values=c( "solid", "solid",  "solid", "solid", "solid", "solid",   "solid", "solid","solid", "solid", "solid",  "solid", "solid"), labels = vc)+
+  scale_color_manual(name="", values=c( 'blue3', "darkviolet", "forestgreen", "chocolate4", "coral1", "goldenrod", "firebrick2", "green1", "darkslategray3", 'black', 'gray40', 'gray68', 'gray86'), labels = vc)+
+  theme_classic()+ theme(legend.position = "none")
+
+# with legend
+# ggplot(temp6, aes(x = date_time, y = mean_daily, group = variable )) +
+#   geom_line(aes(color=variable, linetype=variable), size=1.5)+
+#   ylab("Temperature °C")+ xlab("")+
+#   scale_linetype_manual(name="", values=c( "solid", "solid",  "solid", "solid", "solid", "solid",   "solid", "solid","solid", "solid", "solid",  "solid", "solid"), labels = vc)+
+#   scale_color_manual(name="", values=c( 'blue3', "darkviolet", "forestgreen", "chocolate4", "coral1", "goldenrod", "firebrick2", "green1", "darkslategray3", 'black', 'gray40', 'gray68', 'gray86'), labels = vc)+
+#   theme_classic()
+```
+
+
+```{r}
+
+```
+
+
+
+
+
