@@ -35,6 +35,36 @@ library(doBy) # statistical summary function
 library(stringr)
 ```
 
+```{r import temp stress curves}
+default_stress<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival Curves.csv", header=TRUE, sep=",")
+exp_stress<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival exp.csv", header=TRUE, sep=",")
+log_stress<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival logistic_LC50_25.csv", header=TRUE, sep=",")
+# rename columns
+names(default_stress)<-c("Temperature", "Percent")
+names(exp_stress)<-c("Temperature", "Percent")
+names(log_stress)<-c( "Temperature", "Percent")
+# add group
+default_stress$group <- "default"
+exp_stress$group <- "exponential"
+log_stress$group <- "logistic"
+
+# combine
+temp_stress_curves<-rbind.data.frame(default_stress, exp_stress, log_stress)
+```
+
+```{r plot temperature stress curves}
+width1=4
+height1=2.5
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/sensitivity/lethal_stress_curves.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+ggplot(temp_stress_curves, aes(x=Temperature, y=Percent)) + 
+  geom_line(aes(linetype=group), size=1)+
+  theme_bw()+
+  ylab("Probability of survival") + xlab("Mean 24 h temperature (°C)")+
+  scale_linetype_manual(values=c("solid", "dotdash", "dotted"))+
+  theme(legend.title = element_blank(), legend.position="bottom")
+dev.off()
+```
+
 
 ```{r import end condition}
 # import in combined replicate DFs

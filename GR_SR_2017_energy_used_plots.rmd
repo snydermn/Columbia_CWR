@@ -205,10 +205,10 @@ png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/
 
 # plot
 ggplot(summary_all, aes(x=pretty_scenario, y=ED_per_used, colour=Population, fill=Population)) +
-  geom_errorbar(aes(ymin=ED_per_used - ci, ymax=ED_per_used + ci), width = 0.1, position=pd) +
+  geom_errorbar(aes(ymin=ED_per_used - sd, ymax=ED_per_used + sd), width = 0.1, position=pd) +
   geom_point(position=pd) + 
   ylab("% Energy Density Used")+ xlab("")+
- scale_color_manual(breaks=c("Chinook", "Steelhead"), values=c("red", "blue"))+
+ scale_color_manual(breaks=c("Chinook", "Steelhead"), values=c("green", "purple"))+
   theme_classic(base_size=10) + 
   theme(legend.position = "none")
 

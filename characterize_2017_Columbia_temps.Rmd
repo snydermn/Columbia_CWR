@@ -82,6 +82,12 @@ min_daily_temp <- temp5 %>%
   group_by(jd, variable) %>%
   summarize(mean_daily = min(value))
 
+max_daily_temp <- temp5 %>% 
+  group_by(jd, variable) %>%
+  summarize(range_daily = max(value))
+
+mean(max_daily_temp$range_daily - min_daily_temp$mean_daily)
+
 ```
 
 

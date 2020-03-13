@@ -78,11 +78,6 @@ all_13<-rbind.data.frame(A13, B13, C13, D13)
 ```
 
 
-
-
-
-
-
 ```{r time in system histogram}
 # all_13$Time_in_system_d<-all_13$Time_in_system / 24
 # all_13_labels<-all_13
@@ -101,14 +96,11 @@ all_13<-rbind.data.frame(A13, B13, C13, D13)
 ```
 
 
-
-
-
-
 ```{r terminus arrival histogram preparation}
 # model starts on July 1 which is equivalent to julian day 182
 jday_start<-182
 
+all_13_labels<-all_13
 # step is hour arrived at terminus
 # convert Step to julian day
 all_13_labels$terminus_jday<-floor(all_13_labels$Step / 24) + jday_start
@@ -155,16 +147,35 @@ sub2<-dplyr::filter(all_13_labels, scenario == "Columbia 2040 (2017), CWR Curren
 
 ```
 
+```{r}
 
-```{r GR density}
-p <- ggplot(data = all_13_labels, aes(x = terminus_date, group=scenario)) + geom_density( aes(linetype = scenario, color=scenario), size=1) + theme_classic()+
-  labs(x="Exit Day", y="Count", fill="", title="Grande Ronde River Summer Steelhead") +
+all_13_labels$terminus_date2<-lubridate::as_date(all_13_labels$terminus_date)
+min <- as.Date("07/01/19", format="%m/%d/%y")
+max <- as.Date("10/30/19", format="%m/%d/%y")
+
+p <- ggplot(data = all_13_labels, aes(x = terminus_date2, y = 100*(..count../sum(..count..)), group=scenario)) + geom_density( aes(linetype = scenario, color=scenario), size=1) + theme_classic()+
+  ylim(0,0.35)+ scale_x_date(limits = c(min, max))+
+  labs(x="Exit Day", y="Percentage", fill="", title="Grande Ronde River Summer Steelhead") +
   scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"),labels = c("Current with CWRs", "Current without CWRs", "Future with CWRs", "Future without CWRs"))+
   scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))  +
   theme(axis.text=element_text(size=14),
         axis.title=element_text(size=14),
         legend.text = element_text(size=14), legend.position = "none",
   legend.justification = c("right", "top"), legend.title = element_blank())
+p
+```
+
+```{r GR density}
+
+# p <- ggplot(data = all_13_labels, aes(x = terminus_date, y = 100*(..count../sum(..count..)), group=scenario)) + geom_density( aes(linetype = scenario, color=scenario), size=1) + theme_classic()+
+#     labs(x="Exit Day", y="Percentage", fill="", title="Grande Ronde River Summer Steelhead") +
+#   scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"),labels = c("Current with CWRs", "Current without CWRs", "Future with CWRs", "Future without CWRs"))+
+#   scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))  +
+#   theme(axis.text=element_text(size=14),
+#         axis.title=element_text(size=14),
+#         legend.text = element_text(size=14), legend.position = "none",
+#   legend.justification = c("right", "top"), legend.title = element_blank())
+# p
 ```
 
 
@@ -284,11 +295,13 @@ sub1<-dplyr::filter(sr, scenario == "Columbia 2017, CWR Current" | scenario == "
 sub2<-dplyr::filter(sr, scenario == "Columbia 2040 (2017), CWR Current" | scenario == "Columbia 2040 (2017), No CWR" )
 ```
 
-
-
-```{r GR density}
-z <- ggplot(data = sr, aes(x = terminus_date, group=scenario)) + geom_density( aes(linetype = scenario, color=scenario), size=1) + theme_classic()+
-  labs(x="Exit Day", y="Count", fill="", title="Snake River Fall Chinook Salmon") +
+```{r}
+sr$terminus_date2<-lubridate::as_date(sr$terminus_date)
+min <- as.Date("07/01/19", format="%m/%d/%y")
+max <- as.Date("10/30/19", format="%m/%d/%y")
+z <- ggplot(data = sr, aes(x = terminus_date2, y = 100*(..count../sum(..count..)), group=scenario)) + geom_density(stat='density', aes(linetype = scenario, color=scenario), size=1) + theme_classic()+
+  labs(x="Exit Day", y="Percentage", fill="", title="Snake River Fall Chinook Salmon") +
+  ylim(0,0.35)+ scale_x_date(limits = c(min, max))+
   scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"),labels = c("Current with CWRs", "Current without CWRs", "Future with CWRs", "Future without CWRs"))+
   scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))  +
   theme(axis.text=element_text(size=14),
@@ -299,10 +312,37 @@ z <- ggplot(data = sr, aes(x = terminus_date, group=scenario)) + geom_density( a
 z
 ```
 
+```{r density percent test}
+# z <- ggplot(data = sr, aes(x = terminus_date, y = 100*(..count../sum(..count..)), group=scenario)) + geom_density(stat='density', aes(linetype = scenario, color=scenario), size=1) + theme_classic()+
+#   labs(x="Exit Day", y="Percentage", fill="", title="Snake River Fall Chinook Salmon") +
+#   scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"),labels = c("Current with CWRs", "Current without CWRs", "Future with CWRs", "Future without CWRs"))+
+#   scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))  +
+#   theme(axis.text=element_text(size=14),
+#         axis.title=element_text(size=14),
+#         legend.text = element_text(size=14), legend.position = "none",
+#   legend.justification = c("right", "top"), legend.title = element_blank())
+# 
+# z
+```
+
+
+```{r SR density}
+# z <- ggplot(data = sr, aes(x = terminus_date, group=scenario)) + geom_density( aes(linetype = scenario, color=scenario), size=1) + theme_classic()+
+#   labs(x="Exit Day", y="Count", fill="", title="Snake River Fall Chinook Salmon") +
+#   scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"),labels = c("Current with CWRs", "Current without CWRs", "Future with CWRs", "Future without CWRs"))+
+#   scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))  +
+#   theme(axis.text=element_text(size=14),
+#         axis.title=element_text(size=14),
+#         legend.text = element_text(size=14), legend.position = "none",
+#   legend.justification = c("right", "top"), legend.title = element_blank())
+# 
+# z
+```
+
 ```{r export plots}
 res1 = 300
-width1 = 6
-height1 = 4
+width1 = 4.0
+height1 = 3.0
 png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/arrival timing/SR_hist_arrival.png", res=res1, width=width1, height=height1, units="in", type="windows", antialias = "none")
 par(mar=c(6, 4, 4, 2) + 0.5)
  z

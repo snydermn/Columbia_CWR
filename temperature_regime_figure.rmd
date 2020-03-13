@@ -105,29 +105,34 @@ temp6 <- date_time_f(mean_daily_temp)
 ```
 
 ```{r plot daily mean temperature}
+width1 = 4
+height1 = 4
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/Temperature_regime/temperature_regime.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
 # without legend
 ggplot(temp6, aes(x = date_time, y = mean_daily, group = variable )) +
-  geom_line(aes(color=variable, linetype=variable), size=1.5)+
+  geom_line(aes(color=variable, linetype=variable), size=1.25)+
   ylab("Temperature (°C)")+ xlab("")+
-  scale_linetype_manual(name="", values=c( "solid", "solid",  "solid", "solid", "solid", "solid",   "solid", "solid","solid", "solid", "solid",  "solid", "solid"), labels = vc)+
+  ylim(5,25)+
+  scale_linetype_manual(name="", values=c( "solid", "solid",  "solid", "solid", "solid", "solid", "solid", "solid","solid", "solid", "solid",  "solid", "solid"), labels = vc)+
   scale_color_manual(name="", values=c( 'blue3', "darkviolet", "forestgreen", "chocolate4", "coral1", "goldenrod", "firebrick2", "green1", "darkslategray3", 'black', 'gray40', 'gray68', 'gray86'), labels = vc)+
-  theme_classic()+ theme(legend.position = "none")
-
-# with legend
-# ggplot(temp6, aes(x = date_time, y = mean_daily, group = variable )) +
-#   geom_line(aes(color=variable, linetype=variable), size=1.5)+
-#   ylab("Temperature °C")+ xlab("")+
-#   scale_linetype_manual(name="", values=c( "solid", "solid",  "solid", "solid", "solid", "solid",   "solid", "solid","solid", "solid", "solid",  "solid", "solid"), labels = vc)+
-#   scale_color_manual(name="", values=c( 'blue3', "darkviolet", "forestgreen", "chocolate4", "coral1", "goldenrod", "firebrick2", "green1", "darkslategray3", 'black', 'gray40', 'gray68', 'gray86'), labels = vc)+
-#   theme_classic()
+  theme_classic(base_size = 14)+ theme(legend.position = "none")
+dev.off()
 ```
 
 
-```{r}
-
-```
-
-
+Eagle Creek = 'blue3'
+Rock Creek   =  "darkviolet"           
+Herman Creek = forestgreen             
+Wind River  = chocolate4            
+Little White Salmon River = coral1
+White Salmon River = goldenrod  
+Klickitat River = firebrick2      
+Deschutes River = green1       
+Umatilla River  = darkslategray3        
+Bonneville Pool = black       
+The Dalles Pool = gray40         
+John Day Pool = gray68        
+Above McNary  = gray86     
 
 
 
