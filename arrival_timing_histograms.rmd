@@ -3,6 +3,8 @@ title: "arrival timing histogram"
 author: "MNSnyder"
 date: "2/1/2020"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -33,13 +35,32 @@ library(readr)
 library(lubridate)
 ```
 
+```{r set up directories, echo=FALSE}
+# to run script on different computers specify sys.info()[4] and
+# specify path to model results folder and
+# folder containing look up tables
+
+# Marcia's epa computer -> NOT SET UP
+if(Sys.info()[4]=="LZ2626XMSNYDE02"){
+  fishdir<-path.expand("D:/Results_Columbia/Columbia_Migration_chnk2/Columbia_Migration_chnk2-[1]/") # results path
+  scenario<-"Columbia_Migration_chnk2" # scenario name
+  inputdir<-path.expand("D:/HexSim_Models/CWR_Columbia/Columbia [small]/Analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("D:/HexSim_Models/CWR_Columbia/R_code/") # calibration data directory
+}
+
+# Marcia's Lenovo -> SET UP
+if(Sys.info()[4]=="DESKTOP-KMUP1V2"){
+  fishdir<-path.expand("C:/Users/snyde/Dropbox/")
+  outputdir<-path.expand("C:/Users/snyde/Dropbox/")
+  }
+```
 
 ```{r import end condition}
 # import in combined replicate DFs
-A13<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
-B13<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
-C13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
-D13<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+A13<-read.table(paste(fishdir,"Results_4Populations/gr_Columbia2017B/combined/E13.csv", sep=""), header=TRUE, sep=",")
+B13<-read.table(paste(fishdir,"Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", sep=""), header=TRUE, sep=",")
+C13<-read.table(paste(fishdir,"Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv",  sep=""),header=TRUE, sep=",")
+D13<-read.table(paste(fishdir,"Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", sep=""), header=TRUE, sep=",")
 
 # rename DF columns
 names(A13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
@@ -211,10 +232,10 @@ p
 
 ```{r import end condition}
 # import in combined replicate DFs
-A13sr<-read.table("D:/Results_4Populations/snake_Columbia2017B/combined/E4.csv", header=TRUE, sep=",")
-B13sr<-read.table("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F4.csv", header=TRUE, sep=",")
-C13sr<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G4.csv", header=TRUE, sep=",")
-D13sr<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H4.csv", header=TRUE, sep=",")
+A13sr<-read.table(paste(fishdir,"Results_4Populations/snake_Columbia2017B/combined/E4.csv", sep=""), header=TRUE, sep=",")
+B13sr<-read.table(paste(fishdir,"Results_4Populations/snake_Columbia2017B_NoCWR/combined/F4.csv", sep=""), header=TRUE, sep=",")
+C13sr<-read.table(paste(fishdir,"Results_4Populations/snake_Columbia2017BplusOne/combined/G4.csv",  sep=""),header=TRUE, sep=",")
+D13sr<-read.table(paste(fishdir,"Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H4.csv",  sep=""),header=TRUE, sep=",")
 
 # rename DF columns
 names(A13sr)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
@@ -343,12 +364,12 @@ z
 res1 = 300
 width1 = 4.0
 height1 = 3.0
-png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/arrival timing/SR_hist_arrival.png", res=res1, width=width1, height=height1, units="in", type="windows", antialias = "none")
+png(paste(outputdir,"Manuscript CWR Columbia/draft figures/arrival timing/SR_hist_arrival.png", sep=""),res=res1, width=width1, height=height1, units="in", type="windows", antialias = "none")
 par(mar=c(6, 4, 4, 2) + 0.5)
  z
 dev.off() 
 
-png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/arrival timing/GR_hist_arrival.png", res=res1, width=width1, height=height1, units="in", type="windows", antialias = "none")
+png(paste(outputdir,"Manuscript CWR Columbia/draft figures/arrival timing/GR_hist_arrival.png", sep=""),res=res1, width=width1, height=height1, units="in", type="windows", antialias = "none")
 par(mar=c(6, 4, 4, 2) + 0.1)
  p
 dev.off() 

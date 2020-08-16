@@ -52,12 +52,12 @@ if(Sys.info()[4]=="LZ2626XMSNYDE02"){
   caldir<-path.expand("D:/HexSim_Models/CWR_Columbia/R_code/") # calibration data directory
 }
 
-# Joe's epa computer -> NOT SET UP
-if(Sys.info()[4]=="FILL IN HERE"){
-  fishdir<-path.expand("E:/Results/TEST/TEST-[1]/")
-  scenario<-"Migration_Test" # scenario name
-  inputdir<-path.expand("E:/HexSim_Models/Fish Model/analysis/Data Lookup/") # path to look up tables
-  caldir<-path.expand("E:/HexSim_Models/R_code/") #calibration data directory)
+# Marcia's Lenovo -> SET UP
+if(Sys.info()[4]=="DESKTOP-KMUP1V2"){
+  fishdir<-path.expand("C:/Users/snyde/Dropbox/Results_4Populations")
+  scenario<-"gr_Columbia2017B" # scenario name
+  inputdir<-path.expand("C:/Users/snyde/Dropbox/HexSim_Models/CWR_Columbia/Columbia [small]/Analysis/Data Lookup/") # path to look up tables
+  caldir<-path.expand("C:/Users/snyde/Dropbox//HexSim_Models/CWR_Columbia/R_code/") #calibration data directory)
   }
 ```
 
@@ -83,13 +83,14 @@ plot(bonn_temp2~timestep, data=temp, ylab="Bonneville Temperature", xlab=c("Mode
 
 ```
 
+A14<-fread(paste(fishdir,"gr_Columbia2017B/combined/E14.csv", sep=""), header=TRUE, sep=",")
 
 ```{r import end condition and format}
 # import in combined replicate DFs
-end_A<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
-end_B<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
-end_C<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
-end_D<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+end_A<-read.table(paste(fishdir,"/gr_Columbia2017B/combined/E13.csv", sep=""),header=TRUE, sep=",")
+end_B<-read.table(paste(fishdir,"/gr_Columbia2017B_NoCWR/combined/F13.csv",sep=""), header=TRUE, sep=",")
+end_C<-read.table(paste(fishdir,"/gr_Columbia2017BplusOne/combined/G13.csv",sep=""), header=TRUE, sep=",")
+end_D<-read.table(paste(fishdir,"/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv",sep=""), header=TRUE, sep=",")
 
 # rename DF columns
 names(end_A)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
@@ -101,10 +102,10 @@ names(end_D)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "T
 
 ```{r import hourly and format}
 # import in combined replicate DFs
-hourly_A<-fread("D:/Results_4Populations/gr_Columbia2017B/combined/E14.csv", header=TRUE, sep=",")
-hourly_B<-fread("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F14.csv", header=TRUE, sep=",")
-hourly_C<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G14.csv", header=TRUE, sep=",")
-hourly_D<-fread("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H14.csv", header=TRUE, sep=",")
+hourly_A<-fread(paste(fishdir,"/gr_Columbia2017B/combined/E14.csv",sep=""), header=TRUE, sep=",")
+hourly_B<-fread(paste(fishdir,"/gr_Columbia2017B_NoCWR/combined/F14.csv",sep=""), header=TRUE, sep=",")
+hourly_C<-fread(paste(fishdir,"/gr_Columbia2017BplusOne/combined/G14.csv",sep=""), header=TRUE, sep=",")
+hourly_D<-fread(paste(fishdir,"/gr_Columbia2017BplusOne_NoCWR/combined/H14.csv",sep=""), header=TRUE, sep=",")
 
 # rename columns
 names(hourly_A)<-c("Run", "Step", "Population", "ID", "entry_time", "exit_time", "time_in_system", "time_at_terminus", "river_km", "motivation", "temp_1", "temp_mean", "energy_density", "weight", "energy", "selector", "avoidance", "hours_cold_water_episodic", "hours_cold_water_total", "refuge_id", "hydropower")
