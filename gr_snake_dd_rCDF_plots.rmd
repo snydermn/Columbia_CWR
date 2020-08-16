@@ -608,35 +608,6 @@ dev.off()
 ```
 
 
-NOTFINISHED
-```{r combined reverse CDF plot with egg package for shared axis}
-figure1<-ggarrange(gr_20 + theme(legend.position="none") +
-               theme( plot.margin = margin(r = 1)), 
-          sr_20 + theme(legend.position="none") + 
-               theme(axis.text.y = element_blank(),
-                     axis.ticks.y = element_blank(),
-                     axis.title.y = element_blank()),
-          gr_21 + theme(legend.position="none") +
-               theme( plot.margin = margin(r = 1)), 
-          sr_21 + theme(legend.position="none") + 
-               theme(axis.text.y = element_blank(),
-                     axis.ticks.y = element_blank(),
-                     axis.title.y = element_blank(),
-                     plot.margin = margin(r = 1, l = 1) ),
-          gr_22 + theme(legend.position="none") +
-               theme( plot.margin = margin(r = 1)), 
-          sr_22 + theme(legend.position="none") + 
-               theme(axis.text.y = element_blank(),
-                     axis.ticks.y = element_blank(),
-                     axis.title.y = element_blank(),
-                     plot.margin = margin(r = 1, l = 1) ),
-          nrow = 3) 
-#annotate_figure(figure1,left = text_grob("Proportion",rot = 90) )
-
-```
-
-
-
 
 
 
