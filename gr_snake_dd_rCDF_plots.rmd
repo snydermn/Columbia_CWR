@@ -143,6 +143,15 @@ names(dtest3)[1]<-'Percent'
 
 rev_cdf_all<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
 
+# check plot
+gr_20_check<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>20°C)", y="Proportion")+ xlim(0,1000)+
+  My_Theme_CDF
+gr_20_check
+
+# rename plot
 gr_20<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
   geom_line(aes(linetype=scenario, color=scenario), size=1) +
   theme_classic()+
@@ -150,6 +159,7 @@ gr_20<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) +
     scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
   scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs")) + 
   My_Theme_CDF
+gr_20
 
 ```
 
@@ -204,6 +214,16 @@ names(dtest3)[1]<-'Percent'
 
 rev_cdf_all<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
 
+# plot check
+# plot renamed
+gr_21<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
+  geom_line(aes(linetype=scenario, color=scenario), size=1) +
+  theme_classic()+
+  labs(x="Cumulative Degree Days (>21°C)", y="Proportion")+ xlim(0,1000)+
+  My_Theme_CDF
+gr_21
+
+# plot renamed
 gr_21<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
   geom_line(aes(linetype=scenario, color=scenario), size=1) +
   theme_classic()+
@@ -211,6 +231,7 @@ gr_21<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) +
     scale_linetype_manual(name="", values=c("solid", "twodash", "solid", "twodash"), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
   scale_color_manual(name="", values=c('blue3','blue3', 'firebrick3','firebrick3'), labels = c("Current temperature with CWRs", "Current temperature without CWRs", "Future temperature with CWRs", "Future temperature without CWRs"))+
   My_Theme_CDF
+gr_21
 
 ```
 
@@ -265,6 +286,7 @@ dtest3<-cbind(dtest2, d)
 names(dtest3)[1]<-'Percent'
 
 rev_cdf_all<-rbind.data.frame(atest3, btest3, ctest3, dtest3)
+
 
 gr_22<-ggplot(rev_cdf_all, aes(x =temp_1, y=Percent, group=scenario )) + 
   geom_line(aes(linetype=scenario, color=scenario), size=1) +

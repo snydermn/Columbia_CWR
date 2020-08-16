@@ -392,6 +392,17 @@ p + facet_wrap(~scenario, ncol=1) + labs(x="Arrival date at end of modeled reach
 ```
 
 
+
+```{r terminus arrival histogram for current w and without CWR}
+# subset data to the two scenarios
+all_13_labels_2<-filter(all_13_labels, scenario == "Columbia Current, CWR Current" | scenario == "Columbia Current, No CWRs")
+all_13_labels_2$scenario<-factor(all_13_labels_2$scenario)
+
+# histograms
+p <- ggplot(data = all_13_labels_2, aes(x = date, y = 100*(..count../sum(..count..)))) + geom_histogram()
+p + facet_wrap(~scenario, ncol=1) + labs(x="Arrival date at end of modeled reach", y="Percent", title="Grande Ronde River Summer Steelhead") + theme_classic()
+```
+
 ```{r terminus arrival histogram observed, eval=TRUE}
 psg_timing_gr_keefer <- read_csv("D:/HexSim_Models/CWR_Columbia/Calibration/MKeefer_data/psg_timing_gr_keefer.csv", 
 col_types = cols(bodate = col_date(format = "%m/%d/%Y"), 
