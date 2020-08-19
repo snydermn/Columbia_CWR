@@ -1,5 +1,5 @@
 ---
-title: '<span style=''font-size: 20px''><b>11. Energy use, CWR use, and survivorship results for Snake River Fall Chinook Salmon under year 2017 temperatures for the Columbia River </b></style>'
+title: '<span style=''font-size: 20px''><b>11. Cumulative degree days summary results for Snake River Fall Chinook Salmon under year 2017 temperatures for the Columbia River </b></style>'
 author: " "
 date: " "
 output: html_document
@@ -209,21 +209,6 @@ DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2040 (2017), 
 kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 11.2 Cumulative degree days (>20°C) used across different HexSim thermalscapes summarized for Snake River River fall chinook.", digits=1)
 ```
 
-```{r prepare for DD table based on threshold}
-# set threshold based on 75% quantile
-thres<-268
-
-a<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="A"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="A"))[1]
-b<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="B"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="B"))[1]
-c<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="C"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="C"))[1]
-d<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="D"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="D"))[1]
-
-out<-cbind(a*100,b*100,c*100,d*100)
-# create table with pretty format
-kable(out, col.names=c( "Columbia 2017, CWR Current", "Columbia 2017, No CWR", "Columbia 2040 (2017), CWR Current","Columbia 2040 (2017), No CWR"),row.names=FALSE, caption="Table 11.3 Percent of population with cumulative degree days (>20°C) above 268 across different HexSim thermalscapes summarized for Snake River fall chinook.", digits=0)
-
-```
-
 
 ```{r calc DD GT 21 for each scenario}
 # function to calculate cumulative degree days above a certain degree
@@ -306,23 +291,7 @@ DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia 2040 (2017), 
 DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2040 (2017), No CWR"
 
 # create table with pretty format
-kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 11.4 Cumulative degree days (>21°C) used across different HexSim thermalscapes summarized for Snake River River fall chinook.", digits=1)
-```
-
-
-```{r prepare for DD table based on threshold 21}
-# set threshold based on 75% quantile
-thres<-251
-
-a<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="A"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="A"))[1]
-b<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="B"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="B"))[1]
-c<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="C"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="C"))[1]
-d<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="D"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="D"))[1]
-
-out<-cbind(a*100,b*100,c*100,d*100)
-# create table with pretty format
-kable(out, col.names=c( "Columbia 2017, CWR Current", "Columbia 2017, No CWR", "Columbia 2040 (2017), CWR Current","Columbia 2040 (2017), No CWR"),row.names=FALSE, caption="Table 11.5 Percent of population with cumulative degree days (>21°C) above 268 across different HexSim thermalscapes summarized for Snake River fall chinook.", digits=0)
-
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 11.3 Cumulative degree days (>21°C) used across different HexSim thermalscapes summarized for Snake River River fall chinook.", digits=1)
 ```
 
 
@@ -407,21 +376,6 @@ DD_used_table$scenario[DD_used_table$scenario == "C"] <- "Columbia 2040 (2017), 
 DD_used_table$scenario[DD_used_table$scenario == "D"] <- "Columbia 2040 (2017), No CWR"
 
 # create table with pretty format
-kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 11.6 Cumulative degree days (>22°C) used across different HexSim thermalscapes summarized for Snake River River fall chinook.", digits=1)
-```
-
-```{r prepare for DD table based on threshold 22}
-# set threshold based on 75% quantile
-thres<-135
-
-a<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="A"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="A"))[1]
-b<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="B"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="B"))[1]
-c<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="C"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="C"))[1]
-d<-dim(dplyr::filter(all_14_ddGT18, temp_1 > thres & scenario =="D"))[1] / dim(dplyr::filter(all_14_ddGT18, scenario =="D"))[1]
-
-out<-cbind(a*100,b*100,c*100,d*100)
-# create table with pretty format
-kable(out, col.names=c( "Columbia 2017, CWR Current", "Columbia 2017, No CWR", "Columbia 2040 (2017), CWR Current","Columbia 2040 (2017), No CWR"),row.names=FALSE, caption="Table 11.7 Percent of population with cumulative degree days (>22°C) above 135 across different HexSim thermalscapes summarized for Snake River fall chinook.", digits=0)
-
+kable(DD_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 11.4 Cumulative degree days (>22°C) used across different HexSim thermalscapes summarized for Snake River River fall chinook.", digits=1)
 ```
 

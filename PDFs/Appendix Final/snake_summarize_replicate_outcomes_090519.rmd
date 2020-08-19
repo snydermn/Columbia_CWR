@@ -1,0 +1,212 @@
+---
+title: '<span style=''font-size: 20px''><b>Section 12. Energy use, CWR use, and survivorship results for Snake River Fall Chinook Salmon under year 2017 temperatures for the Columbia River </b></style>'
+author: " "
+date: " "
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+```
+
+
+```{r import end condition}
+# import in combined replicate DFs
+A13<-read.table("D:/Results_4Populations/snake_Columbia2017B/combined/E4.csv", header=TRUE, sep=",")
+B13<-read.table("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F4.csv", header=TRUE, sep=",")
+C13<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G4.csv", header=TRUE, sep=",")
+D13<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H4.csv", header=TRUE, sep=",")
+
+# rename DF columns
+names(A13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(B13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(C13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+names(D13)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+
+```
+
+
+```{r created energy used for all scenarios without gamete}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density-DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+A13<-avail_energy_diff(A13)
+B13<-avail_energy_diff(B13)
+C13<-avail_energy_diff(C13)
+D13<-avail_energy_diff(D13)
+
+# add scenario identifying column
+A13$scenario<-"A"
+B13$scenario<-"B"
+C13$scenario<-"C"
+D13$scenario<-"D"
+
+# combine DFs 
+all_13<-rbind.data.frame(A13, B13, C13, D13)
+```
+
+
+```{r plot formatting}
+width1 = 4.5
+height1 = 3.5
+text1 = 8
+```
+
+
+```{r A13 hist}
+a1<-ggplot(A13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,55) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),  title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia 2017, \nCWR Current") 
+```
+
+```{r B13 hist}
+b1<-ggplot(B13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,55) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia 2017, \nNo CWR")
+```
+
+```{r C13 hist}
+c1<-ggplot(C13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,55) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia 2040 (2017), \nCWR Current")
+```
+
+```{r D13 hist}
+d1<-ggplot(D13, aes(x=ED_per_used)) + geom_histogram(aes(x=ED_per_used, y=100 * (..count..)/sum(..count..))) + xlim(0,55) + ylim(0,25) + theme_classic() + theme(legend.position="none", axis.text=element_text(size=text1),
+title=element_text(size=8),axis.title=element_text(size=text1)) + labs(x="Energy Used (%)", y="Percent", title="Columbia 2040 (2017), \nNo CWR")
+```
+
+```{r plot energy hist together, fig.cap="Fig. 12.1 Histogram of percent energy lost for modeled Snake River fall Chinook migrating through four different modeled thermalscapes."}
+plot_grid( a1, b1, c1, d1, 
+          labels = c("A", "B", "C", "D"),
+          ncol = 2, nrow = 2)
+```
+
+
+```{r energy lost boxplot, fig.cap="Fig. 12.2 Boxplot of percent energy lost for modeled Snake River fall Chinook migrating through four different modeled thermalscapes."}
+all_13$scenario<-as.factor(all_13$scenario)
+
+out2<-ggplot(all_13, aes(x=scenario, y=ED_per_used, group=scenario)) +   
+  geom_boxplot() + 
+  labs( y="Energy lost (%)", title="Snake River fall Chinook") + 
+  theme_classic() 
+
+out2 + theme(axis.text.x=element_text(color = "black", size=11, angle=30, vjust=.8, hjust=0.8), axis.title.x=element_blank(),) + scale_x_discrete(limits=c("A", "B", "C","D"), labels=c(
+  "Columbia 2017,\n CWR Current",
+  "Columbia 2017, \nNo CWRs", 
+  "Columbia 2040 (2017), \nCWR Current", 
+  "Columbia 2040 (2017), \nNo CWRs")) 
+```
+
+
+```{r energy lost table}
+ED_used_table<-aggregate(ED_per_used~scenario, data=all_13, quantile)
+ED_used_table$scenario<-as.character(ED_used_table$scenario)
+ED_used_table<-format(ED_used_table, digits = 2)
+ED_used_table$scenario[ED_used_table$scenario == "A"] <- "Columbia 2017, CWR Current"
+ED_used_table$scenario[ED_used_table$scenario == "B"] <- "Columbia 2017, No CWR"
+ED_used_table$scenario[ED_used_table$scenario == "C"] <- "Columbia 2017, CWR Current"
+ED_used_table$scenario[ED_used_table$scenario == "D"] <- "Columbia 2017, No CWR"
+
+
+# create table with pretty format
+kable(ED_used_table, col.names=c( "Scenario", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 12.1 Percent energy used across different HexSim thermalscapes summarized for Snake River fall Chinook.", digits=1)
+```
+
+
+```{r import refuges data, eval=TRUE, echo=FALSE}
+# import refuges population census table
+# only has refuge density for hours when a refuge is occupied
+# import in combined replicate DFs
+A9<-read.table("D:/Results_4Populations/snake_Columbia2017B/combined/E9.csv", header=TRUE, sep=",")
+B9<-read.table("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F9.csv", header=TRUE, sep=",")
+C9<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G9.csv", header=TRUE, sep=",")
+D9<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H9.csv", header=TRUE, sep=",")
+
+# rename columns
+colnames(A9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
+            "retain_chinook","retain_steelhead", "removed_chinook", "removed_steelhead")
+colnames(B9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
+            "retain_chinook","retain_steelhead", "removed_chinook", "removed_steelhead")
+colnames(C9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
+            "retain_chinook","retain_steelhead", "removed_chinook", "removed_steelhead")
+colnames(D9)<-c("run","timestep","Population","ID", "refuge_id", "refuge_depth_chinook" ,"refuge_depth_steelhead", "effective_volume_chinook","effective_volume_steelhead", "current_refuge_density",
+            "retain_chinook","retain_steelhead", "removed_chinook", "removed_steelhead")
+
+# create dataframe to link hexsim refuge id with name of refuge
+# HexSim Refuge ID in this file:
+# 14 - Eagle Creek
+# 15 - Rock Creek
+# 16 - Herman Creek
+# 17 - Wind River
+# 18 - Little White Salmon River
+# 19 - White Salmon River
+# 20 - Klickitat River
+# 21 - Deschutes River
+# 22 - Umatilla River
+# create sequence of refuge IDs
+refuge_IDseq<-seq(14,22,1)
+# create translator sequence because model adds 1 
+#refuge_IDseq2<-seq(1,7,1)
+
+# create vector of refuge names
+refuge_name<-c("Eagle Creek", "Rock Creek", "Herman Creek", "Wind River", "Little White Salmon River","White Salmon River", "Klickitat River", "Deschutes River", "Umatilla River")
+refuge_id<-cbind.data.frame(refuge_IDseq, refuge_name) # create dataframe to link refuge ID value with refuge Name
+# merge name with refuge data
+A9_2<-merge(A9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
+B9_2<-merge(B9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
+C9_2<-merge(C9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
+D9_2<-merge(D9, refuge_id, by.x="refuge_id", by.y="refuge_IDseq")
+
+C_sum<-sum(C9_2$retain_chinook)
+A_sum<-sum(A9_2$retain_chinook)
+B_sum<-sum(B9_2$retain_chinook)
+D_sum<-sum(D9_2$retain_chinook)
+sum_v<-c(A_sum,B_sum, C_sum, D_sum)
+
+# adjust units to h per individual
+no_ind <- 6000
+sum_v <- (sum_v /no_ind)
+
+names_v<-c("Columbia 2017,CWR Current",
+  "Columbia 2017, No CWRs", 
+  "Columbia 2040 (2017), Current", 
+  "Columbia 2040 (2017), No CWRs")
+refuge_use_all<-cbind.data.frame(names_v, sum_v)
+kable(refuge_use_all, digits=0, col.names=c("Scenario", "CWR Residence (h/individual)"), caption="Table 12.2 Model output for hours residing in cold water refuges summarized for Snake River fall Chinook.")
+```
+
+```{r summarize dying fish}
+# import in combined replicate DFs
+A12<-read.table("D:/Results_4Populations/snake_Columbia2017B/combined/E3.csv", header=TRUE, sep=",")
+B12<-read.table("D:/Results_4Populations/snake_Columbia2017B_NoCWR/combined/F3.csv", header=TRUE, sep=",")
+C12<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne/combined/G3.csv", header=TRUE, sep=",")
+D12<-read.table("D:/Results_4Populations/snake_Columbia2017BplusOne_NoCWR/combined/H3.csv", header=TRUE, sep=",")
+
+
+# get number of individuals died from acute temperature stress
+acute_A<-((dim(A12)[1])/ 6000) * 100
+acute_B<-((dim(B12)[1])/ 6000) * 100
+acute_C<-((dim(C12)[1])/ 6000) * 100
+acute_D<-((dim(D12)[1])/ 6000) * 100
+
+acute_v<-c( acute_A, acute_B, acute_C,  acute_D)
+acute_all<-cbind.data.frame(names_v, acute_v)
+kable(acute_all,digits=2, col.names=c("Scenario", "Total mortality"), caption="Table 12.3 Model output for percent of individuals dying from acute temperature stress summarized for Snake River fall Chinook.")
+
+```
+
+
+
+

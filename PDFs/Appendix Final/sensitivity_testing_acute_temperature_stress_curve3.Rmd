@@ -1,0 +1,328 @@
+---
+title: 'Sensitivity testing: acute temperature stress 3'
+author: "MNSnyder"
+date: "2/19/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+To evaluate uncertainty around how acute temperature stress influences fish fitness outcomes we ran a Sensitivity analysis of the acute temperature stress curve. We modeled the Grande Ronde Summer Steelhead population because of their large range in propensity to behaviorally thermoregulate. Sensitivity tests were based on a typical recent temperature year (2017) for the Columbia River. The effect of changing the shape of the temperature stress survival curve was measured on fish fitness outcomes including the percent mortality and overall energy used. Two different curves were evaluated: an exponential relationship with LC10 and LC50 values from Jager et al. 2011 and a logistic curve from Sullivan et al.    
+ 
+Thermalscapes compared with default thermalscape-
+* gr_Columbia2017B_surv_LC50
+* gr_Columbia2017BplusOne_surv_LC50
+* gr_Columbia2017BplusOne_NoCWR_surv_LC50
+* gr_Columbia2017B_acute_exp
+* gr_Columbia2017BplusOne_acute_exp
+* gr_Columbia2017BplusOne_NoCWR_acute_exp
+* gr_Columbia2017B_NoCWR_acute_exp
+* gr_Columbia2017B_NoCWR_surv_LC50
+* gr_Columbia2017B_NoCWR
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+library(ggplot2)
+library(cowplot)
+library(data.table)
+library(knitr)
+library(chron)
+library(lubridate)
+library(dplyr)
+library(plotly)
+library(GGally)
+library(doBy) # statistical summary function
+library(stringr)
+```
+
+```{r import temp stress curves}
+default_stress<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival Curves.csv", header=TRUE, sep=",")
+exp_stress<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival exp.csv", header=TRUE, sep=",")
+log_stress<-read.table("D:/git_repo/Columbia_CWR/Sensitivity/acute temperature mortality/Temperature vs Survival logistic_LC50_25.csv", header=TRUE, sep=",")
+# rename columns
+names(default_stress)<-c("Temperature", "Percent")
+names(exp_stress)<-c("Temperature", "Percent")
+names(log_stress)<-c( "Temperature", "Percent")
+# add group
+default_stress$group <- "default"
+exp_stress$group <- "exponential"
+log_stress$group <- "logistic"
+
+# combine
+temp_stress_curves<-rbind.data.frame(default_stress, exp_stress, log_stress)
+```
+
+```{r plot temperature stress curves}
+width1=4
+height1=2.5
+png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/sensitivity/lethal_stress_curves.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+ggplot(temp_stress_curves, aes(x=Temperature, y=Percent)) + 
+  geom_line(aes(linetype=group), size=1)+
+  theme_bw()+
+  ylab("Probability of survival") + xlab("Mean 24 h temperature (°C)")+
+  scale_linetype_manual(values=c("solid", "dotdash", "dotted"))+
+  theme(legend.title = element_blank(), legend.position="bottom")
+dev.off()
+```
+
+
+```{r import end condition}
+# import in combined replicate DFs
+A_end<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E13.csv", header=TRUE, sep=",")
+B_end<-read.table("D:/Results_4Populations/gr_Columbia2017B_surv_LC50/combined/E13.csv", header=TRUE, sep=",")
+C_end<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_surv_LC50/combined/E13.csv", header=TRUE, sep=",")
+D_end<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR_surv_LC50/combined/E13.csv", header=TRUE, sep=",")
+E_end<-read.table("D:/Results_4Populations/gr_Columbia2017B_acute_exp/combined/E13.csv", header=TRUE, sep=",")
+F_end<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_acute_exp/combined/E13.csv", header=TRUE, sep=",")
+G_end<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR_acute_exp/combined/E13.csv", header=TRUE, sep=",")
+H_end<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H13.csv", header=TRUE, sep=",")
+I_end<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G13.csv", header=TRUE, sep=",")
+J_end<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_acute_exp/combined/E13.csv", header=TRUE, sep=",")
+K_end<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_surv_LC50/combined/E13.csv", header=TRUE, sep=",")
+L_end<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F13.csv", header=TRUE, sep=",")
+
+# rename columns
+rename_end_condition <-function(DF){
+  names(DF)<-c("Run", "Step", "Population", "ID", "Time_entry", "Time_exit", "Time_in_system", "Time_remaining", "Total_hours_cold_water", "Initial_weight", "Initial_energy_density", "Fitness_weight", "Fitness_energy_density", "Fitness_energy")
+  return(DF)
+}
+
+A_end <- rename_end_condition(A_end)
+B_end <- rename_end_condition(B_end)
+C_end <- rename_end_condition(C_end)
+D_end <- rename_end_condition(D_end)
+E_end <- rename_end_condition(E_end)
+F_end <- rename_end_condition(F_end)
+G_end <- rename_end_condition(G_end)
+H_end <- rename_end_condition(H_end)
+I_end <- rename_end_condition(I_end)
+J_end <- rename_end_condition(J_end)
+K_end <- rename_end_condition(K_end)
+L_end <- rename_end_condition(L_end)
+
+
+```
+
+
+```{r created energy used for all thermalscapes without gamete}
+# function to calculate cumulative degree days above a certain degree
+avail_energy_diff<-function(DF){
+  DF$gamete<-(((7598 + (0.527 * DF$Initial_weight)) * DF$Initial_weight) * 0.068) / DF$Initial_weight
+DF$initial_ED_avail<-DF$Initial_energy_density - DF$gamete
+# create column of energy lost
+# energy_all$energy_lost<-energy_all$X11 - energy_all$X13
+DF$energy_lost_gamete<-(DF$initial_ED_avail - DF$Fitness_energy) 
+DF$ED_per_used<-(DF$energy_lost_gamete/DF$initial_ED_avail) * 100
+return(DF)
+}
+
+A_end<-avail_energy_diff(A_end)
+B_end<-avail_energy_diff(B_end)
+C_end<-avail_energy_diff(C_end)
+D_end<-avail_energy_diff(D_end)
+E_end<-avail_energy_diff(E_end)
+F_end<-avail_energy_diff(F_end)
+G_end<-avail_energy_diff(G_end)
+H_end<-avail_energy_diff(H_end)
+I_end<-avail_energy_diff(I_end)
+J_end<-avail_energy_diff(J_end)
+K_end<-avail_energy_diff(K_end)
+L_end<-avail_energy_diff(L_end)
+
+
+# add stress curve identifying column
+A_end$stress<-"Default"
+B_end$stress<-"A"
+C_end$stress<-"A"
+D_end$stress<-"A"
+E_end$stress<-"B"
+F_end$stress<-"B"
+G_end$stress<-"B"
+H_end$stress<-"Default"
+I_end$stress<-"Default"
+J_end$stress<-"B"
+K_end$stress<-"A"
+L_end$stress<-"Default"
+
+# add thermalscape identifying column
+A_end$thermalscape<-"Current"
+B_end$thermalscape<-"Current"
+C_end$thermalscape<-"Future"
+D_end$thermalscape<-"Future no CWR"
+E_end$thermalscape<-"Current"
+F_end$thermalscape<-"Future"
+G_end$thermalscape<-"Future no CWR"
+H_end$thermalscape<-"Future no CWR"
+I_end$thermalscape<-"Future"
+J_end$thermalscape<-"Current no CWR"
+K_end$thermalscape<-"Current no CWR"
+L_end$thermalscape<-"Current no CWR"
+
+
+# combine DFs 
+all_GR<-rbind.data.frame(A_end, B_end, C_end, D_end, E_end, F_end, G_end, H_end, I_end, J_end, K_end, L_end)
+```
+
+
+```{r statistical summary function}
+## Summarizes data.
+## Gives count, mean, standard deviation, standard error of the mean, and confidence 
+## interval (default 95%).
+##   data: a data frame.
+##   measurevar: the name of a column that contains the variable to be summariezed
+##   groupvars: a vector containing names of columns that contain grouping variables
+##   na.rm: a boolean that indicates whether to ignore NA's
+##   conf.interval: the percent range of the confidence interval (default is 95%)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE, conf.interval=.95) {
+    library(doBy)
+
+    # New version of length which can handle NA's: if na.rm==T, don't count them
+    length2 <- function (x, na.rm=FALSE) {
+        if (na.rm) sum(!is.na(x))
+        else       length(x)
+    }
+
+    # Collapse the data
+    formula <- as.formula(paste(measurevar, paste(groupvars, collapse=" + "), sep=" ~ "))
+    datac <- summaryBy(formula, data=data, FUN=c(length2,mean,sd), na.rm=na.rm)
+
+    # Rename columns
+    names(datac)[ names(datac) == paste(measurevar, ".mean",    sep="") ] <- measurevar
+    names(datac)[ names(datac) == paste(measurevar, ".sd",      sep="") ] <- "sd"
+    names(datac)[ names(datac) == paste(measurevar, ".length2", sep="") ] <- "N"
+    
+    datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+    
+    # Confidence interval multiplier for standard error
+    # Calculate t-statistic for confidence interval: 
+    # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+    ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+    datac$ci <- datac$se * ciMult
+    
+    return(datac)
+}
+```
+
+gr_Columbia2017B_NoCWR
+```{r import dead table for percent dead across thermalscapes}
+# import in combined replicate DFs
+A_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E12.csv", header=TRUE, sep=",")
+B_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B_surv_LC50/combined/E12.csv", header=TRUE, sep=",")
+C_dead<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_surv_LC50/combined/E12.csv", header=TRUE, sep=",")
+D_dead<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR_surv_LC50/combined/E12.csv", header=TRUE, sep=",")
+E_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B_acute_exp/combined/E12.csv", header=TRUE, sep=",")
+F_dead<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_acute_exp/combined/E12.csv", header=TRUE, sep=",")
+G_dead<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR_acute_exp/combined/E12.csv", header=TRUE, sep=",")
+H_dead<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne_NoCWR/combined/H12.csv", header=TRUE, sep=",")
+I_dead<-read.table("D:/Results_4Populations/gr_Columbia2017BplusOne/combined/G12.csv", header=TRUE, sep=",")
+J_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_acute_exp/combined/E12.csv", header=TRUE, sep=",")
+K_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_surv_LC50/combined/E12.csv", header=TRUE, sep=",")
+L_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F12.csv", header=TRUE, sep=",")
+
+
+names_v<-c("Current Default", "Current A","Future A","Future no CWR A","Current B","Future B","Future no CWR B", "Future no CWR Default", "Future Default", "Current no CWR B", "Current no CWR A", "Current no CWR Default")
+
+```
+
+#### *Survival*
+
+A small decrease in survival across all temperatures can translate into a disproporionately higher number of deceased fish because the probability of survivorship is calculated every 24 h. 
+
+```{r create percent dead across thermalscapes kable}
+# number of simulated fish
+num_fish<-6000
+# get number of individuals died from acute temperature stress
+acute_A<-((dim(A_dead)[1])/ num_fish) * 100
+acute_B<-((dim(B_dead)[1])/ num_fish) * 100
+acute_C<-((dim(C_dead)[1])/ num_fish) * 100
+acute_D<-((dim(D_dead)[1])/ num_fish) * 100
+acute_E<-((dim(E_dead)[1])/ num_fish) * 100
+acute_F<-((dim(F_dead)[1])/ num_fish) * 100
+acute_G<-((dim(G_dead)[1])/ num_fish) * 100
+acute_H<-((dim(H_dead)[1])/ num_fish) * 100
+acute_I<-((dim(I_dead)[1])/ num_fish) * 100
+acute_J<-((dim(J_dead)[1])/ num_fish) * 100
+acute_K<-((dim(K_dead)[1])/ num_fish) * 100
+acute_L<-((dim(L_dead)[1])/ num_fish) * 100
+
+acute_v<-c( acute_A, acute_B, acute_C, acute_D, acute_E, acute_F, acute_G, acute_H, acute_I, acute_J, acute_K, acute_L)
+
+acute_all<-cbind.data.frame(names_v, acute_v)
+acute_all$names_v <- factor(acute_all$names_v, levels=c("Current Default", "Current no CWR Default", "Future Default", "Future no CWR Default", "Current A", "Current no CWR A", "Future A", "Future no CWR A", "Current B", "Current no CWR B", "Future B", "Future no CWR B"))
+
+kable(acute_all, digits=1, col.names=c("Scenario", "Total mortality"), caption="Table 1. Model output for percent of individuals dying from acute temperature stress summarized for Grande Ronde River Summer Steelhead.")
+```
+
+#### *Energy Use*
+
+```{r GR calculate mean plus error energy used}
+
+summary_GR<-summarySE(all_GR, measurevar = "ED_per_used", groupvars = c( "thermalscape" ,"stress"))
+
+```
+
+
+```{r percent energy used plot, fig.cap="Fig. 1. Fish fitness model outcomes for the population showing mean (±SE) percent of energy used.  "}
+
+# change order of thermalscapes for plot
+#summary_GR$thermalscape <- factor(summary_GR$thermalscape, levels=c( "Current Default", "Current no CWR Default", "Future Default", "Future no CWR Default", "Current A", "Current no CWR A", "Future A", "Future no CWR A", "Current B", "Current no CWR B", "Future B", "Future no CWR B"))
+
+# for text wrapping
+#var_width = 9
+#summary_GR2 <- mutate(summary_GR, pretty_thermalscape = stringr::str_wrap(thermalscape, width = var_width))
+
+summary_GR$stress <- factor(summary_GR$stress, levels=c("Default", "A", "B"))
+# for plot position dodging
+pd <- position_dodge(0.1) # move them .05 to the left and right
+
+width1 = 4
+height1 = 3
+
+# plot
+ggplot(summary_GR, aes(x=thermalscape, y=ED_per_used, colour=thermalscape)) +
+  geom_errorbar(aes(ymin=ED_per_used - ci, ymax=ED_per_used + ci), width = 0.1, position=pd, size=1.25) +
+  geom_point(position=pd, size=2) + facet_grid(.~stress)+
+  ylab("% Energy Density Used")+ xlab("")+
+  theme_bw(base_size=12) + 
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size=14),
+        legend.position = "none")+
+  scale_colour_manual(values=c("blue4", "green", "darkorange","coral4"))
+  
+```
+
+
+```{r percent energy used boxplot, fig.cap="Fig. 2. Boxplot of modeled percent energy loss for Grande Ronde River summer steelhead with risk adverse behavioral thermoregulation. The factor modifies the move to cold water refuge probability based on model week in relation to maximum Columbia River temperature."}
+
+width1 = 4
+height1 = 3
+
+all_GR$stress <- factor(all_GR$stress, levels=c("Default", "A", "B"))
+
+# plot
+ggplot(all_GR, aes(x=thermalscape, y=ED_per_used, colour=thermalscape)) +
+  geom_boxplot() + facet_grid(.~stress)+
+  ylab("% Energy Density Used")+ xlab("")+
+  theme_bw(base_size=12) + 
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size=14),
+        legend.position = "none")+
+   scale_colour_manual(values=c("blue4", "green", "darkorange","coral4"))
+  
+  
+```
+
+
+```{r energy lost table}
+ED_used_table<-aggregate(ED_per_used~thermalscape + stress, data=all_GR, quantile)
+#ED_used_table$thermalscape<-as.character(ED_used_table$thermalscape)
+ED_used_table<-format(ED_used_table, digits = 2)
+
+# create table with pretty format
+kable(ED_used_table, col.names=c( "thermalscape", "stress curve", "Minimum", "25% quantile","Median", "75% quantile", "Maximum"),row.names=FALSE, caption="Table 1. Percent energy used across different acute temperature stress curves summarized for Grande Ronde River Summer Steelhead.", digits=1)
+```
+
