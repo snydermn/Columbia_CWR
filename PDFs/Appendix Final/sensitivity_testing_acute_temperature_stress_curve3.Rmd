@@ -1,24 +1,14 @@
 ---
-title: 'Sensitivity testing: acute temperature stress 3'
-author: "MNSnyder"
-date: "2/19/2020"
+title: "<span style='font-size: 20px'><b>13. Sensitivity testing of acute temperature stress curve </b></style>"
+author: " "
+date: " "
 output: html_document
 editor_options: 
   chunk_output_type: console
 ---
 
-To evaluate uncertainty around how acute temperature stress influences fish fitness outcomes we ran a Sensitivity analysis of the acute temperature stress curve. We modeled the Grande Ronde Summer Steelhead population because of their large range in propensity to behaviorally thermoregulate. Sensitivity tests were based on a typical recent temperature year (2017) for the Columbia River. The effect of changing the shape of the temperature stress survival curve was measured on fish fitness outcomes including the percent mortality and overall energy used. Two different curves were evaluated: an exponential relationship with LC10 and LC50 values from Jager et al. 2011 and a logistic curve from Sullivan et al.    
+To evaluate uncertainty around how acute temperature stress influences fish fitness outcomes we performed a sensitivity analysis of the acute temperature stress curve. Sensitivity tests were based on a typical recent temperature year (2017) for the Columbia River. The effect of changing the shape of the temperature stress survival curve was measured on percent mortality. Two different curves were evaluated: an exponential relationship with LC10 and LC50 values from Jager et al. 2011 (exponential) and a curve defined in Sullivan et al. 2000 (logistic). The default acute temperature stress equation was based on the curve from the InStream model (Railsback et al. 2009). We compared three thermalscapes to the current thermalscape with CWRs: current year 2017 Columbia River temperatures without CWRs, warmer Columbia River (year 2017 +1°C), and warmer Columbia River (year 2017 +1°C without CWRs). We modeled the Grande Ronde Summer Steelhead population because of their large range in propensity to behaviorally thermoregulate.
  
-Thermalscapes compared with default thermalscape-
-* gr_Columbia2017B_surv_LC50
-* gr_Columbia2017BplusOne_surv_LC50
-* gr_Columbia2017BplusOne_NoCWR_surv_LC50
-* gr_Columbia2017B_acute_exp
-* gr_Columbia2017BplusOne_acute_exp
-* gr_Columbia2017BplusOne_NoCWR_acute_exp
-* gr_Columbia2017B_NoCWR_acute_exp
-* gr_Columbia2017B_NoCWR_surv_LC50
-* gr_Columbia2017B_NoCWR
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
@@ -52,17 +42,17 @@ log_stress$group <- "logistic"
 temp_stress_curves<-rbind.data.frame(default_stress, exp_stress, log_stress)
 ```
 
-```{r plot temperature stress curves}
+```{r plot temperature stress curves, fig.cap="Fig. 13.1 Acute temperature stress curves tested in sensitivity experiment."}
 width1=4
 height1=2.5
-png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/sensitivity/lethal_stress_curves.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
+#png("C:/Users/msnyde02/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/Manuscript CWR Columbia/draft figures/sensitivity/lethal_stress_curves.png", res=300, width=width1, height=height1, units="in", type="windows", antialias = "none")
 ggplot(temp_stress_curves, aes(x=Temperature, y=Percent)) + 
   geom_line(aes(linetype=group), size=1)+
   theme_bw()+
   ylab("Probability of survival") + xlab("Mean 24 h temperature (°C)")+
   scale_linetype_manual(values=c("solid", "dotdash", "dotted"))+
   theme(legend.title = element_blank(), legend.position="bottom")
-dev.off()
+#dev.off()
 ```
 
 
@@ -145,18 +135,18 @@ K_end$stress<-"A"
 L_end$stress<-"Default"
 
 # add thermalscape identifying column
-A_end$thermalscape<-"Current"
-B_end$thermalscape<-"Current"
-C_end$thermalscape<-"Future"
-D_end$thermalscape<-"Future no CWR"
-E_end$thermalscape<-"Current"
-F_end$thermalscape<-"Future"
-G_end$thermalscape<-"Future no CWR"
-H_end$thermalscape<-"Future no CWR"
-I_end$thermalscape<-"Future"
-J_end$thermalscape<-"Current no CWR"
-K_end$thermalscape<-"Current no CWR"
-L_end$thermalscape<-"Current no CWR"
+A_end$thermalscape<-"Current (2017)"
+B_end$thermalscape<-"Current (2017)"
+C_end$thermalscape<-"Future (2017)"
+D_end$thermalscape<-"Future (2017) no CWR"
+E_end$thermalscape<-"Current (2017)"
+F_end$thermalscape<-"Future (2017)"
+G_end$thermalscape<-"Future (2017) no CWR"
+H_end$thermalscape<-"Future (2017) no CWR"
+I_end$thermalscape<-"Future (2017)"
+J_end$thermalscape<-"Current (2017) no CWR"
+K_end$thermalscape<-"Current (2017) no CWR"
+L_end$thermalscape<-"Current (2017) no CWR"
 
 
 # combine DFs 
@@ -203,7 +193,7 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE, conf.i
 }
 ```
 
-gr_Columbia2017B_NoCWR
+
 ```{r import dead table for percent dead across thermalscapes}
 # import in combined replicate DFs
 A_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B/combined/E12.csv", header=TRUE, sep=",")
@@ -220,13 +210,10 @@ K_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR_surv_LC50/com
 L_dead<-read.table("D:/Results_4Populations/gr_Columbia2017B_NoCWR/combined/F12.csv", header=TRUE, sep=",")
 
 
-names_v<-c("Current Default", "Current A","Future A","Future no CWR A","Current B","Future B","Future no CWR B", "Future no CWR Default", "Future Default", "Current no CWR B", "Current no CWR A", "Current no CWR Default")
+names_v<-c("Current (2017), Default", "Current (2017), Logistic","Future (2017), Logistic","Future (2017) no CWR, Logistic","Current (2017), Exponential","Future (2017), Exponential","Future (2017) no CWR, Exponential", "Future (2017) no CWR, Default", "Future (2017), Default", "Current (2017) no CWR, Exponential", "Current (2017) no CWR, Logistic", "Current (2017) no CWR, Default")
 
 ```
 
-#### *Survival*
-
-A small decrease in survival across all temperatures can translate into a disproporionately higher number of deceased fish because the probability of survivorship is calculated every 24 h. 
 
 ```{r create percent dead across thermalscapes kable}
 # number of simulated fish
@@ -248,21 +235,20 @@ acute_L<-((dim(L_dead)[1])/ num_fish) * 100
 acute_v<-c( acute_A, acute_B, acute_C, acute_D, acute_E, acute_F, acute_G, acute_H, acute_I, acute_J, acute_K, acute_L)
 
 acute_all<-cbind.data.frame(names_v, acute_v)
-acute_all$names_v <- factor(acute_all$names_v, levels=c("Current Default", "Current no CWR Default", "Future Default", "Future no CWR Default", "Current A", "Current no CWR A", "Future A", "Future no CWR A", "Current B", "Current no CWR B", "Future B", "Future no CWR B"))
+acute_all$names_v <- factor(acute_all$names_v, levels=c("Current (2017), Default", "Current (2017) no CWR, Default", "Future (2017), Default", "Future (2017) no CWR, Default", "Current (2017), Logistic", "Current (2017) no CWR, Logistic", "Future (2017), Logistic", "Future (2017) no CWR, Logistic", "Current (2017), Exponential", "Current (2017) no CWR, Exponential", "Future (2017), Exponential", "Future (2017) no CWR, Exponential"))
 
-kable(acute_all, digits=1, col.names=c("Scenario", "Total mortality"), caption="Table 1. Model output for percent of individuals dying from acute temperature stress summarized for Grande Ronde River Summer Steelhead.")
+kable(acute_all, digits=1, col.names=c("Scenario", "Total mortality"), caption="Table 13.1 Model output for percent of individuals dying from acute temperature stress summarized for Grande Ronde River Summer Steelhead.")
 ```
 
-#### *Energy Use*
 
-```{r GR calculate mean plus error energy used}
+```{r GR calculate mean plus error energy used, eval=FALSE}
 
 summary_GR<-summarySE(all_GR, measurevar = "ED_per_used", groupvars = c( "thermalscape" ,"stress"))
 
 ```
 
 
-```{r percent energy used plot, fig.cap="Fig. 1. Fish fitness model outcomes for the population showing mean (±SE) percent of energy used.  "}
+```{r percent energy used plot, eval=FALSE, fig.cap="Fig. 1. Fish fitness model outcomes for the population showing mean (±SE) percent of energy used.  "}
 
 # change order of thermalscapes for plot
 #summary_GR$thermalscape <- factor(summary_GR$thermalscape, levels=c( "Current Default", "Current no CWR Default", "Future Default", "Future no CWR Default", "Current A", "Current no CWR A", "Future A", "Future no CWR A", "Current B", "Current no CWR B", "Future B", "Future no CWR B"))
@@ -294,7 +280,7 @@ ggplot(summary_GR, aes(x=thermalscape, y=ED_per_used, colour=thermalscape)) +
 ```
 
 
-```{r percent energy used boxplot, fig.cap="Fig. 2. Boxplot of modeled percent energy loss for Grande Ronde River summer steelhead with risk adverse behavioral thermoregulation. The factor modifies the move to cold water refuge probability based on model week in relation to maximum Columbia River temperature."}
+```{r percent energy used boxplot, eval=FALSE, fig.cap="Fig. 2. Boxplot of modeled percent energy loss for Grande Ronde River summer steelhead with risk adverse behavioral thermoregulation. The factor modifies the move to cold water refuge probability based on model week in relation to maximum Columbia River temperature."}
 
 width1 = 4
 height1 = 3
@@ -317,7 +303,7 @@ ggplot(all_GR, aes(x=thermalscape, y=ED_per_used, colour=thermalscape)) +
 ```
 
 
-```{r energy lost table}
+```{r energy lost table, eval=FALSE}
 ED_used_table<-aggregate(ED_per_used~thermalscape + stress, data=all_GR, quantile)
 #ED_used_table$thermalscape<-as.character(ED_used_table$thermalscape)
 ED_used_table<-format(ED_used_table, digits = 2)

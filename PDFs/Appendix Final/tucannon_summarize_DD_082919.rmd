@@ -1,7 +1,5 @@
 ---
-title: '<span style=''font-size: 20px''><b>1. Cumulative degree days summary
-  results for Tucannon summer steelhead under long-term average temperatures for the
-  Columbia River </b></style>'
+title: '<span style=''font-size: 20px''><b>1. Cumulative degree days summary results for Tucannon summer steelhead under long-term average temperatures for the  Columbia River </b></style>'
 author: ' '
 date: ' '
 output:

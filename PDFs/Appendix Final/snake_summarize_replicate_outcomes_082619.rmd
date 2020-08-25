@@ -333,19 +333,19 @@ F12<-read.table("D:/Results_4Populations/snake_Columbiarestored_No_CWR/combined/
 G12<-read.table("D:/Results_4Populations/snake_current_current_No_CWR/combined/G3.csv", header=TRUE, sep=",")
 
 # get number of individuals died from acute temperature stress
-acute_A<-((dim(A12)[1])/ 2000) * 100
-acute_B<-((dim(B12)[1])/ 2000) * 100
-acute_C<-((dim(C12)[1])/ 2000) * 100
+acute_A<-((dim(A12)[1])/ 6000) * 100
+acute_B<-((dim(B12)[1])/ 6000) * 100
+acute_C<-((dim(C12)[1])/ 6000) * 100
 #acute_D<-((dim(D12)[1])/ 2000) * 100
-acute_E<-((dim(E12)[1])/ 2000) * 100
-acute_F<-((dim(F12)[1])/ 2000) * 100
-acute_G<-((dim(G12)[1])/ 2000) * 100
+acute_E<-((dim(E12)[1])/ 6000) * 100
+acute_F<-((dim(F12)[1])/ 6000) * 100
+acute_G<-((dim(G12)[1])/ 6000) * 100
 acute_v<-c(acute_C, acute_G, acute_A, acute_E,acute_B, acute_F)
-acute_all<-cbind(names_v, acute_v)
-kable(acute_all, col.names=c("Scenario", "Total mortality"), caption="Table 6.3 Model output for percent of individuals dying from acute temperature stress summarized for Snake River Fall Chinook.")
+acute_all<-cbind.data.frame(names_v, acute_v)
+kable(acute_all,digits=2, col.names=c("Scenario", "Total mortality"), caption="Table 6.3 Model output for percent of individuals dying from acute temperature stress summarized for Snake River Fall Chinook.")
 ```
 
-```{r time in system histogram, eval=FALSE}
+```{r time in system histogram, eval=TRUE}
 all_13$Time_in_system_d<-all_13$Time_in_system / 24
 all_13_labels<-all_13
 # vector of scenario labels
@@ -359,12 +359,12 @@ levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="F"] <-"Columbia 
 levels(all_13_labels$scenario)[levels(all_13_labels$scenario)=="G"] <-"Columbia Current, No CWRs"
 
 #v_names<-c("Columbia 2040- CWR Current", "Columbia Restored- CWR Current","Columbia Current- CWR Current", "Columbia #Current- CWR Restored", "Columbia 2040- No CWRs", "Columbia Restored- No CWRs","Columbia Current- No CWRs" )
-p <- ggplot(data = all_13_labels, aes(x = Time_in_system_d)) + geom_histogram(binwidth = 10) 
-p + facet_wrap(~scenario) + labs(x="Passage time (d)", y="Count", title="Snake River Fall Chinook salmon") 
+#p <- ggplot(data = all_13_labels, aes(x = Time_in_system_d)) + geom_histogram(binwidth = 10) 
+#p + facet_wrap(~scenario) + labs(x="Passage time (d)", y="Count", title="Snake River Fall Chinook salmon") 
 ```
 
 
-```{r terminus arrival histogram, eval=FALSE}
+```{r terminus arrival histogram, eval=TRUE}
 # model starts on July 1 which is equivalent to julian day 182
 jday_start<-182
 # step is hour got to terminus
@@ -376,8 +376,18 @@ all_13_labels$date_ch<-chron(all_13_labels$jday, origin=c(month=1, day=1, year=2
 all_13_labels$date<- as.POSIXct(all_13_labels$date_ch, "GMT") 
 
 # histograms
-p <- ggplot(data = all_13_labels, aes(x = date)) + geom_histogram()
-p + facet_wrap(~scenario) + labs(x="Exit Day", y="Count", title="Snake River Fall Chinook salmon")
+# p <- ggplot(data = all_13_labels, aes(x = date)) + geom_histogram()
+# p + facet_wrap(~scenario) + labs(x="Exit Day", y="Count", title="Snake River Fall Chinook salmon")
+```
+
+```{r terminus arrival histogram for current w and without CWR 2, eval=TRUE}
+# subset data to the two scenarios
+all_13_labels_2<-filter(all_13_labels, scenario == "Columbia Current, CWR Current" | scenario == "Columbia Current, No CWRs")
+all_13_labels_2$scenario<-factor(all_13_labels_2$scenario)
+
+# histograms
+p <- ggplot(data = all_13_labels_2, aes(x = date, y = 100*(..count../sum(..count..)))) + geom_histogram()
+p + facet_wrap(~scenario, ncol=1) + labs(x="Arrival date at end of modeled reach", y="Percent", title="Snake River Fall Chinook Salmon") + theme_classic()
 ```
 
 

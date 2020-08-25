@@ -1,5 +1,5 @@
 ---
-title: '<span style=''font-size: 20px''><b>Section 12. Energy use, CWR use, and survivorship results for Snake River Fall Chinook Salmon under year 2017 temperatures for the Columbia River </b></style>'
+title: '<span style=''font-size: 20px''><b>12. Energy use, CWR use, and survivorship results for Snake River Fall Chinook Salmon under year 2017 temperatures for the Columbia River </b></style>'
 author: " "
 date: " "
 output: html_document
